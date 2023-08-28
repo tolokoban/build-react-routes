@@ -1,6 +1,7 @@
 # build-react-routes
 
-Create routes based on the folder structure
+Create lightweight routes based on conventions inspired by
+[NextJS App Router](https://nextjs.org/docs/app).
 
 ## Usage
 
@@ -18,7 +19,7 @@ import App from "./app"
 createRoot(document.body).render(<App />)
 ```
 
-## Folder structure
+## Folders conventions
 
 You first have to choose folder to reflect your routes. for instance `src/app`.
 All subfolders will be pathes of the routes if they contain a `page.tsx` or `page.mdx` file, with these exceptions:
@@ -32,19 +33,19 @@ Here is an example of folder structure:
 src/
 ┗━ app/
    ┣━ (articles)/
-      ┣━ plates/
-         ┗━ page.mdx
-      ┗━ glasses/
-         ┗━ page.tsx
-         ┣━ _common_/
-            ┣━ config/
-               ┗━ page.tsx
-            ┗━ page.tsx
-         ┣━ beer/
-            ┗━ page.mdx
-         ┣━ wine/
-         ┗━ juice/
-            ┗━ page.mdx
+   ┃  ┣━ plates/
+   ┃  ┃  ┗━ page.mdx
+   ┃  ┗━ glasses/
+   ┃     ┣━ page.tsx
+   ┃     ┣━ _common_/
+   ┃     ┃  ┣━ config/
+   ┃     ┃  ┃  ┗━ page.tsx
+   ┃     ┃  ┗━ page.tsx
+   ┃     ┣━ beer/
+   ┃     ┃  ┗━ page.mdx
+   ┃     ┣━ wine/
+   ┃     ┗━ juice/
+   ┃        ┗━ page.mdx
    ┣━ welcome/
    ┗━ test/
       ┗━ garbage/
@@ -59,6 +60,20 @@ And here are the resulting routes:
 * `http://localhost/#/glasses/juice`
 * `http://localhost/#/test/garbage`
 
+## Filenames conventions
+
+In the `src/app` folder (or any other you have specified),
+some files have special meanings:
+
+* `page.tsx`: The component to display when we reach this route.
+Must export a default function which returns a React component without any property.
+If a folder contains a `page.tsx`, it will generate a route.
+* `page.mdx`: Instead of writing the code for the component, you can let
+[MDX](https://mdxjs.com/) generate one based on the
+[Markdown](https://commonmark.org/) you provide in a `page.mdx` file.
+* `layout.tsx`: A layout is UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
+* `loading.tsx`: The component to display while `page.tsx` (or `page.mdx`) is loading.
+
 ## Relative paths
 
 If the path does not start with a `/`,
@@ -71,9 +86,9 @@ src/
 ┗━ app/
    ┣━ (articles)/
       ┗━ glasses/
-         ┗━ page.mdx
+         ┣━ page.mdx
          ┣━ beer/
-            ┗━ page.mdx
+         ┃  ┗━ page.mdx
          ┗━ wine/
             ┗━ page.mdx
 ```
@@ -95,3 +110,16 @@ but also this one (using relative pathes):
 * (for beer)[#beer]
 * (for wine)[#wine]
 ```
+
+## Limitations
+
+* Routing works only with hashes.
+* You cannot use parameters (yet).
+
+## Why don't you just use NextJs or ReactRouter?
+
+If you like the way NextJS deals with routes but cannot afford
+to install it in your production environment,
+then `build-react-routes` can be the cheapest solution.
+
+This solution is best suited for rich documentations written in Markdown.

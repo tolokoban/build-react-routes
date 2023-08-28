@@ -3,6 +3,9 @@
     "version": "0.1.1",
     "private": false,
     "bin": "dist/build-react-routes.js",
+    "repository": {
+        "url": "https://github.com/tolokoban/build-react-routes"
+    },
     "dependencies": {
         "chokidar": "^3.5.3"
     },
