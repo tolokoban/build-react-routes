@@ -1,6 +1,6 @@
 export type CodeSection = string | boolean | CodeSection[]
 
-export function codeToString(code: CodeSection, indent = ""): string {
+function codeToString(code: CodeSection, indent = ""): string {
     if (typeof code === "boolean") return ""
     if (typeof code === "string") return `${indent}${code}`
 

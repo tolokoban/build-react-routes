@@ -9,7 +9,6 @@ function useHash() {
             const newHash = extractHash(event.newURL)
             const absHash = ensureAbsoluteHash(newHash, oldHash)
             if (absHash !== newHash) {
-                console.log(">>>", absHash)
                 history.replaceState({}, "", \`#$\{absHash}\`)
             }
             setHash(absHash)
@@ -34,7 +33,7 @@ function ensureAbsoluteHash(newHash: string, oldHash: string) {
     while (hash.startsWith("./")) {
         hash = hash.substring("./".length)
     }
-    const path = oldHash.substring(1).split("/")
+    const path = oldHash.split("/").filter(nonEmpty)
     for (const item of newHash.split("/")) {
         if (item === "..") {
             if (path.length > 0) path.pop()
@@ -42,7 +41,11 @@ function ensureAbsoluteHash(newHash: string, oldHash: string) {
             path.push(item)
         }
     }
-    return \`/$\{path.join("/")}\`
+    return \`/$\{path.filter(nonEmpty).join("/")}\`
+}
+
+function nonEmpty(s: unknown): s is string {
+    return typeof s === "string" && s.trim().length > 0
 }
 
 interface HashMatch {
@@ -51,11 +54,21 @@ interface HashMatch {
 }
 
 function match(hash: string, path: string): null | HashMatch {
-    if (!hash.startsWith(path)) return null
+    const params: Record<string, string> = {}
+    const hashItems = hash.split("/").filter(nonEmpty)
+    const pathItems = path.split("/").filter(nonEmpty)
+    for (let i = 0; i < Math.min(hashItems.length, pathItems.length); i++) {
+        const hashItem = hashItems[i]
+        const pathItem = pathItems[i]
+        if (pathItem.startsWith("[")) {
+            const paramName = pathItem.substring(1, pathItem.length - 1)
+            params[paramName] = hashItem
+        } else if (hashItem !== pathItem) return null
+    }
 
     return {
-        full: hash.length === path.length,
-        params: {},
+        full: hashItems.length === pathItems.length,
+        params,
     }
 }
 
@@ -64,23 +77,42 @@ interface RouteProps {
     element?: JSX.Element
     fallback?: JSX.Element
     children?: React.ReactNode
-    Page?: React.FC<{}>
-    Layout?: React.FC<{ children: React.ReactNode }>
-    Template?: React.FC<{ children: React.ReactNode }>
+    Page?: React.FC<{ params: Record<string, string> }>
+    Layout?: React.FC<{
+        children: React.ReactNode
+        params: Record<string, string>
+    }>
+    Template?: React.FC<{
+        children: React.ReactNode
+        params: Record<string, string>
+    }>
 }
 
-function Route({ path, fallback, children, Page, Layout, Template }: RouteProps) {
+function Route({
+    path,
+    fallback,
+    children,
+    Page,
+    Layout,
+    Template,
+}: RouteProps) {
     const hash = useHash()
     const m = match(hash, path)
     if (!m) return null
 
     if (m.full) {
         if (!Page) return null
-        
-        const element = Template ? <Template><Page /></Template> : <Page />
+
+        const element = Template ? (
+            <Template params={m.params}>
+                <Page params={m.params} />
+            </Template>
+        ) : (
+            <Page params={m.params} />
+        )
         if (Layout) {
             return (
-                <Layout>
+                <Layout params={m.params}>
                     <React.Suspense fallback={fallback}>
                         {element}
                     </React.Suspense>
@@ -89,6 +121,10 @@ function Route({ path, fallback, children, Page, Layout, Template }: RouteProps)
         }
         return <React.Suspense fallback={fallback}>{element}</React.Suspense>
     }
-    return Layout ? <Layout>{children}</Layout> : <>{children}</>
+    return Layout ? (
+        <Layout params={m.params}>{children}</Layout>
+    ) : (
+        <>{children}</>
+    )
 }
 `

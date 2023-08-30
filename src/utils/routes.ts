@@ -2,7 +2,7 @@ import { existsSync } from "node:fs"
 import Path from "node:path"
 import { listDirs, saveText, saveTextIfNew } from "./fs"
 import { Route } from "./types"
-import { CodeSection, codeToString } from "./code"
+import { CodeSection, codeLinesToString } from "./code"
 import { ROUTES_CODE } from "./templates"
 
 const DISCLAIMER = [
@@ -90,7 +90,7 @@ export async function generateRoutes(rootPath: string, routes: Route[]) {
     const [firstRoute] = routes
     await saveText(
         Path.resolve(rootPath, "index.tsx"),
-        codeToString([
+        codeLinesToString([
             ...DISCLAIMER,
             'import React from "react"',
             ...routes

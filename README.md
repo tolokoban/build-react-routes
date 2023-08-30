@@ -74,6 +74,28 @@ If a folder contains a `page.tsx`, it will generate a route.
 * `layout.tsx`: A layout is UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
 * `loading.tsx`: The component to display while `page.tsx` (or `page.mdx`) is loading.
 
+## Params
+
+Let's look at the file `src/app/tasks/[taskId]/page.tsx`:
+
+```ts
+export default function Page({ params }: { params: Record<string, string> }) {
+    const taskId = parseInt(params.taskId, 10)
+    const tasks = listTasks()
+    const task = tasks[taskId]
+    return (
+        <div>
+            <h1>{task}</h1>
+            <a href="#..">Back</a>
+        </div>
+    )
+}
+```
+
+You can notice that the path has an item with square brackets (`[taskId]`).
+This item matches any string and stores it in a `params` object that we can read
+in any `page.tsx` and `layout.tsx`.
+
 ## Relative paths
 
 If the path does not start with a `/`,
@@ -114,7 +136,7 @@ but also this one (using relative pathes):
 ## Limitations
 
 * Routing works only with hashes.
-* You cannot use parameters (yet).
+* Typescript only.
 
 ## Why don't you just use NextJs or ReactRouter?
 
