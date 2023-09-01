@@ -23,15 +23,13 @@ export function flattenRoutes(route: Route): Route[] {
         routes.push(next)
         fringe.push(...next.children)
     }
-    return routes
-        .filter(({ page }) => Boolean(page))
-        .sort((r1, r2) => {
-            const n1 = r1.name
-            const n2 = r2.name
-            if (n1 < n2) return -1
-            if (n1 > n2) return +1
-            return 0
-        })
+    return routes.filter(hasAnyChildWithPage).sort((r1, r2) => {
+        const n1 = r1.name
+        const n2 = r2.name
+        if (n1 < n2) return -1
+        if (n1 > n2) return +1
+        return 0
+    })
 }
 
 let routeId = 0
@@ -88,6 +86,7 @@ function exists(path: string, filename: string): boolean {
 
 export async function generateRoutes(rootPath: string, routes: Route[]) {
     const [firstRoute] = routes
+    const routesWithPages = routes.filter(({ page }) => Boolean(page))
     await saveText(
         Path.resolve(rootPath, "index.tsx"),
         codeLinesToString([
@@ -121,7 +120,7 @@ export async function generateRoutes(rootPath: string, routes: Route[]) {
                         )}"`
                 ),
             "",
-            ...routes.map(
+            ...routesWithPages.map(
                 route =>
                     `const Page${
                         route.id
@@ -187,4 +186,16 @@ function getTemplate(route: Route) {
         current = current.parent
     }
     return template
+}
+
+/**
+ * A route must have a page, or any child with a page.
+ */
+function hasAnyChildWithPage(route: Route): boolean {
+    if (route.page) return true
+
+    for (const child of route.children) {
+        if (hasAnyChildWithPage(child)) return true
+    }
+    return false
 }

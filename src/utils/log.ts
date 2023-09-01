@@ -37,7 +37,7 @@ export function logDebug(...args: unknown[]) {
 export function logRoute(route: Route) {
     console.log(
         color(route.name, "Yellow"),
-        `(${route.page})`,
+        color("page", route.page ? "LightGreen" : "LightRed"),
         color("layout", route.layout ? "LightGreen" : "LightRed"),
         color("loading", route.loading ? "LightGreen" : "LightRed"),
         route.path
