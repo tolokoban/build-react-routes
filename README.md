@@ -19,6 +19,18 @@ import App from "./app"
 createRoot(document.body).render(<App />)
 ```
 
+You can get the params from the props or with this hook:
+
+```ts
+import { useRouteParams } from "./app"
+
+export default function Page({ params }: { params: Record<string, string> }) {
+    const params2 : Record<string, string> = useRouteParams()
+}
+```
+
+The hook is more suited when used inside another hook that do no propagate the `params` argument.
+
 ## Folders conventions
 
 You first have to choose folder to reflect your routes. for instance `src/app`.

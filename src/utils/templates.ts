@@ -53,6 +53,27 @@ interface HashMatch {
     full: boolean
 }
 
+let currentParams: Record<string, string> = {}
+
+export function useRouteParams(): Record<string, string> {
+    const [params, setParams] = React.useState(currentParams)
+    if (areDiffentParams(params, currentParams)) {
+        setParams(currentParams)
+    }
+    return params
+}
+
+function areDiffentParams(p1: Record<string, string>, p2: Record<string, string>): boolean {
+    const k1 = Object.keys(p1)
+    const k2 = Object.keys(p2)
+    if (k1.length !== k2.length) return true
+
+    for (const key of k1) {
+        if (p1[key] !== p2[key]) return true
+    }
+    return false
+}
+
 function match(hash: string, path: string): null | HashMatch {
     const params: Record<string, string> = {}
     const hashItems = hash.split("/").filter(nonEmpty)
@@ -66,10 +87,9 @@ function match(hash: string, path: string): null | HashMatch {
         } else if (hashItem !== pathItem) return null
     }
 
-    return {
-        full: hashItems.length === pathItems.length,
-        params,
-    }
+    currentParams = params
+    const full = hashItems.length === pathItems.length
+    return { full, params }
 }
 
 interface RouteProps {
