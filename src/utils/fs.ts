@@ -53,6 +53,15 @@ export async function listDirs(path: string): Promise<string[]> {
         .sort()
 }
 
+export async function listFiles(path: string): Promise<string[]> {
+    const files = await FS.readdir(path, { withFileTypes: true })
+    return files
+        .filter(f => f.isFile())
+        .map(f => f.name)
+        .filter(name => !"._".includes(name.charAt(0)))
+        .sort()
+}
+
 export async function loadText(path: string): Promise<string> {
     if (!existsSync(path)) {
         logWarning("This file does not exist:", path)

@@ -1,6 +1,6 @@
 {
     "name": "build-react-routes",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "private": false,
     "bin": "dist/build-react-routes.js",
     "repository": {
@@ -15,7 +15,7 @@
         "pub": "npm publish --access public"
     },
     "devDependencies": {
-        "@types/node": "^20.5.7",
-        "typescript": "^5.2.2"
+        "@types/node": "^20.10.4",
+        "typescript": "^5.3.3"
     }
 }

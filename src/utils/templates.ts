@@ -92,20 +92,35 @@ function match(hash: string, path: string): null | HashMatch {
     return { full, params }
 }
 
+function intl<T extends PageComponent | ContainerComponent | JSX.Element>(
+    page: T,
+    translations: Record<string, T>,
+    lang = "", 
+): T {
+    const candidate1 = translations[lang]
+    if (candidate1) return candidate1
+
+    const [prefix] = lang.split("-")
+    const candidate2 = translations[prefix]
+    if (candidate2) return candidate2
+
+    return page
+}
+
+type PageComponent = React.FC<{ params: Record<string, string> }>
+type ContainerComponent = React.FC<{
+    children: React.ReactNode
+    params: Record<string, string>
+}>
+
 interface RouteProps {
     path: string
     element?: JSX.Element
     fallback?: JSX.Element
     children?: React.ReactNode
-    Page?: React.FC<{ params: Record<string, string> }>
-    Layout?: React.FC<{
-        children: React.ReactNode
-        params: Record<string, string>
-    }>
-    Template?: React.FC<{
-        children: React.ReactNode
-        params: Record<string, string>
-    }>
+    Page?: PageComponent
+    Layout?: ContainerComponent
+    Template?: ContainerComponent
 }
 
 function Route({

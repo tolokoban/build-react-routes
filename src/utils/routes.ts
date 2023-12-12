@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs"
 import Path from "node:path"
-import { listDirs, saveText, saveTextIfNew } from "./fs"
+import { listDirs, listFiles, saveText } from "./fs"
 import { Route } from "./types"
 import { CodeSection, codeLinesToString } from "./code"
 import { ROUTES_CODE } from "./templates"
@@ -47,6 +47,7 @@ export async function browseRoutes(
         layout: exists(path, "layout.tsx"),
         loading: exists(path, "loading.tsx"),
         template: exists(path, "template.tsx"),
+        languages: await findLanguages(path),
         children: [],
         parent,
     }
@@ -92,67 +93,152 @@ export async function generateRoutes(rootPath: string, routes: Route[]) {
         codeLinesToString([
             ...DISCLAIMER,
             'import React from "react"',
-            ...routes
-                .filter(({ layout }) => Boolean(layout))
-                .map(
-                    ({ id, path }) =>
-                        `import Layout${id} from "./${Path.join(
-                            Path.relative(rootPath, path),
-                            "layout"
-                        )}"`
-                ),
-            ...routes
-                .filter(({ loading }) => Boolean(loading))
-                .map(
-                    ({ id, path }) =>
-                        `import Loading${id} from "./${Path.join(
-                            Path.relative(rootPath, path),
-                            "loading"
-                        )}"`
-                ),
-            ...routes
-                .filter(({ template }) => Boolean(template))
-                .map(
-                    ({ id, path }) =>
-                        `import Template${id} from "./${Path.join(
-                            Path.relative(rootPath, path),
-                            "template"
-                        )}"`
-                ),
-            "",
-            ...routesWithPages.map(
-                route =>
-                    `const Page${
-                        route.id
-                    } = React.lazy(() => import("./${Path.join(
-                        Path.relative(rootPath, route.path),
-                        pageName(route)
-                    )}"))`
+            ...getCodeToImportContainer(routes, "layout", rootPath),
+            ...getCodeToImportContainer(routes, "loading", rootPath),
+            ...getCodeToImportContainer(routes, "template", rootPath),
+            ...routesWithPages.map(route =>
+                route.languages.page
+                    .map(
+                        (lang, index) =>
+                            `const Page${route.id}${
+                                index > 0 ? `_${index}` : ""
+                            } = React.lazy(() => import("./${Path.join(
+                                Path.relative(rootPath, route.path),
+                                pageName(route, lang)
+                            )}"))`
+                    )
+                    .join("\n")
             ),
             "",
-            "export default function App() {",
-            ["return (", createRoutesTree(firstRoute), ")"],
+            "export default function App({ lang }: { lang?: string }) {",
+            [
+                ...createMultiLangElements(routes),
+                "return (",
+                createRoutesTree(firstRoute),
+                ")",
+            ],
             "}",
             ROUTES_CODE,
         ])
     )
 }
 
-function pageName(route: Route): string {
+function getCodeToImportContainer(
+    routes: Route[],
+    key: keyof Route["languages"],
+    rootPath: string
+): string[] {
+    const prop = `${key.charAt(0).toUpperCase()}${key.substring(1)}`
+    return routes
+        .filter(route => Boolean(route[key]))
+        .map(route =>
+            route.languages[key]
+                .map((lang, index) => {
+                    const path = Path.join(
+                        Path.relative(rootPath, route.path),
+                        key
+                    )
+                    const name = `${prop}${route.id}`
+                    if (index === 0) return `import ${name} from "./${path}"`
+                    return `import ${name}_${index} from "./${path}.${lang}"`
+                })
+                .join("\n")
+        )
+}
+
+function pageName(route: Route, lang: string): string {
     const extension = route.page
     if (!extension || extension === "tsx") return "page"
 
-    return `page.${extension}`
+    return `page${lang === "_" ? "" : `.${lang}`}.${extension}`
+}
+
+function makeProp(
+    route: Route,
+    key: keyof Route["languages"],
+    varName: string
+): string {
+    if (!route[key]) return ""
+
+    const prefix = `${key.charAt(0).toUpperCase()}${key.substring(1)}`
+    return ` ${prefix}={${varName}${route.id}}`
+}
+
+function makeIntl(
+    id: number,
+    languages: string[],
+    name: string,
+    isElement = false
+) {
+    const wrap = isElement ? (t: string) => `<${t}/>` : (t: string) => t
+    const base = `${name}${id}`
+    if (languages.length < 2) return wrap(base)
+
+    return `intl(${wrap(`${base}`)}, {${languages
+        .map((lang, index) =>
+            index === 0 ? null : `"${lang}": ${wrap(`${base}_${index}`)}`
+        )
+        .filter(item => item !== null)
+        .join(", ")}}, lang)`
+}
+
+function createMultiLangElements(routes: Route[]): CodeSection[] {
+    const code: CodeSection[] = []
+    let hasRootLoading = false
+    routes.forEach(route => {
+        if (route.loading) {
+            if (route.id === 0) hasRootLoading = true
+            code.push(
+                `const fb${route.id} = ${makeIntl(
+                    route.id,
+                    route.languages.loading,
+                    "Loading",
+                    true
+                )}`
+            )
+        }
+        if (route.layout) {
+            code.push(
+                `const ly${route.id} = ${makeIntl(
+                    route.id,
+                    route.languages.layout,
+                    "Layout"
+                )}`
+            )
+        }
+        if (route.template) {
+            code.push(
+                `const tp${route.id} = ${makeIntl(
+                    route.id,
+                    route.languages.template,
+                    "Template"
+                )}`
+            )
+        }
+        if (route.page) {
+            code.push(
+                `const pg${route.id} = ${makeIntl(
+                    route.id,
+                    route.languages.page,
+                    "Page"
+                )}`
+            )
+        }
+    })
+    if (!hasRootLoading) code.unshift("const fb = <div>Loading...</div>")
+    return code
 }
 
 function createRoutesTree(route: Route): CodeSection {
     const loading = getLoading(route)
     const template = getTemplate(route)
-    const routeCode = `Route path="${route.name}" ${
-        route.page ? `Page={Page${route.id}}` : ""
-    }${route.layout ? ` Layout={Layout${route.id}}` : ""}${
+    const routeCode = `Route path="${route.name}"${makeProp(
+        route,
+        "page",
+        "pg"
+    )}${makeProp(route, "layout", "ly")}${
         template ? ` Template={${template}}` : ""
-    } fallback={${loading}}`
+    } ${loading}`
     return route.children.length > 0
         ? [
               `<${routeCode}>`,
@@ -163,16 +249,14 @@ function createRoutesTree(route: Route): CodeSection {
 }
 
 function getLoading(route: Route) {
-    let loading = `<div>Loading...</div>`
     let current: Route | undefined = route
     while (current) {
         if (current.loading) {
-            loading = `<Loading${current.id} />`
-            break
+            return `fallback={fb${current.id}}`
         }
         current = current.parent
     }
-    return loading
+    return `fallback={fb}`
 }
 
 function getTemplate(route: Route) {
@@ -180,7 +264,7 @@ function getTemplate(route: Route) {
     let current: Route | undefined = route
     while (current) {
         if (current.template) {
-            template = `Template${current.id}`
+            template = `tp${current.id}`
             break
         }
         current = current.parent
@@ -198,4 +282,55 @@ function hasAnyChildWithPage(route: Route): boolean {
         if (hasAnyChildWithPage(child)) return true
     }
     return false
+}
+
+async function findLanguages(path: string): Promise<{
+    page: string[]
+    layout: string[]
+    loading: string[]
+    template: string[]
+}> {
+    const pageExtension = exists(path, "page.tsx") ? "tsx" : "mdx"
+    const languages: {
+        page: string[]
+        layout: string[]
+        loading: string[]
+        template: string[]
+    } = { page: ["_"], layout: ["_"], loading: ["_"], template: ["_"] }
+    const files = await listFiles(path)
+    for (const file of files) {
+        if (checkLang(languages.page, file, "page", pageExtension)) continue
+        if (checkLang(languages.layout, file, "layout")) continue
+        if (checkLang(languages.loading, file, "loading")) continue
+        if (checkLang(languages.template, file, "template")) continue
+    }
+    return languages
+}
+
+function checkLang(
+    languages: string[],
+    filename: string,
+    prefix: string,
+    suffix: string = "tsx"
+) {
+    const lang = extractLang(filename, prefix, suffix)
+    if (lang) {
+        languages.push(lang)
+        return true
+    }
+    return false
+}
+
+function extractLang(
+    filename: string,
+    prefix: string,
+    suffix: string
+): string | null {
+    const start = `${prefix}.`
+    const end = `.${suffix}`
+    if (!filename.startsWith(start) || !filename.endsWith(end)) return null
+
+    if (filename.length < start.length + end.length) return null
+
+    return filename.substring(start.length, filename.length - end.length)
 }

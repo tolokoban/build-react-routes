@@ -19,6 +19,12 @@ import App from "./app"
 createRoot(document.body).render(<App />)
 ```
 
+If you want to use nultiple languages, you can pass the current one as a prop:
+
+```ts
+createRoot(document.body).render(<App lang={navigator.language}/>)
+```
+
 You can get the params from the props or with this hook:
 
 ```ts
@@ -85,6 +91,22 @@ If a folder contains a `page.tsx`, it will generate a route.
 [Markdown](https://commonmark.org/) you provide in a `page.mdx` file.
 * `layout.tsx`: A layout is UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
 * `loading.tsx`: The component to display while `page.tsx` (or `page.mdx`) is loading.
+
+## Multilingual pages
+
+You are supposed to write your website in the "default" language and then add translations if you need them.
+
+For example, if your are writing in english and need an italian translation, you will write `page.tsx` and `page.it.tsx`.
+This works also for `layout` and `loading`.
+
+The file resolution for `en-US` will be to search the files in this order:
+
+* `page.en-US.mdx`
+* `page.en-US.tsx`
+* `page.en.mdx`
+* `page.en.tsx`
+* `page.mdx`
+* `page.tsx`
 
 ## Params
 

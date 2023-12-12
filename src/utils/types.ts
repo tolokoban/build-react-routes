@@ -14,6 +14,12 @@ export interface Route {
     layout: boolean
     loading: boolean
     template: boolean
+    languages: {
+        page: string[]
+        layout: string[]
+        loading: string[]
+        template: string[]
+    }
     children: Route[]
     parent?: Route
 }
