@@ -9,7 +9,7 @@ function useHash() {
             const newHash = extractHash(event.newURL)
             const absHash = ensureAbsoluteHash(newHash, oldHash)
             if (absHash !== newHash) {
-                history.replaceState({}, "", \`#$\{absHash}\`)
+                history.replaceState({}, "", `#${absHash}`)
             }
             setHash(absHash)
         }
@@ -41,7 +41,7 @@ function ensureAbsoluteHash(newHash: string, oldHash: string) {
             path.push(item)
         }
     }
-    return \`/$\{path.filter(nonEmpty).join("/")}\`
+    return `/${path.filter(nonEmpty).join("/")}`
 }
 
 function nonEmpty(s: unknown): s is string {
@@ -51,27 +51,59 @@ function nonEmpty(s: unknown): s is string {
 interface HashMatch {
     params: { [name: string]: string }
     full: boolean
+    route: string
 }
 
-let currentParams: Record<string, string> = {}
+class ActiveValue<T> {
+    private readonly listeners = new Set<(value: T) => void>()
+    private _value: T
+
+    constructor(value: T) {
+        this._value = value
+    }
+
+    get value() {
+        return this._value
+    }
+    set value(value: T) {
+        if (value === this._value) return
+
+        this._value = value
+        this.listeners.forEach(listener => listener(value))
+    }
+
+    addListener(listener: (value: T) => void) {
+        this.listeners.add(listener)
+    }
+
+    removeListener(listener: (value: T) => void) {
+        this.listeners.delete(listener)
+    }
+}
+
+const currentRoute = new ActiveValue({
+    params: {},
+    full: false,
+    route: "/",
+})
+
+function toParams(value: HashMatch) {
+    return {
+        ...value.params,
+        $route: value.route,
+    }
+}
 
 export function useRouteParams(): Record<string, string> {
-    const [params, setParams] = React.useState(currentParams)
-    if (areDiffentParams(params, currentParams)) {
-        setParams(currentParams)
-    }
+    const [params, setParams] = React.useState(toParams(currentRoute.value))
+    React.useEffect(() => {
+        const update = (value: HashMatch) => {
+            setParams(toParams(value))
+        }
+        currentRoute.addListener(update)
+        return () => currentRoute.removeListener(update)
+    }, [])
     return params
-}
-
-function areDiffentParams(p1: Record<string, string>, p2: Record<string, string>): boolean {
-    const k1 = Object.keys(p1)
-    const k2 = Object.keys(p2)
-    if (k1.length !== k2.length) return true
-
-    for (const key of k1) {
-        if (p1[key] !== p2[key]) return true
-    }
-    return false
 }
 
 function match(hash: string, path: string): null | HashMatch {
@@ -87,15 +119,14 @@ function match(hash: string, path: string): null | HashMatch {
         } else if (hashItem !== pathItem) return null
     }
 
-    currentParams = params
     const full = hashItems.length === pathItems.length
-    return { full, params }
+    return { full, params, route: path }
 }
 
 function intl<T extends PageComponent | ContainerComponent | JSX.Element>(
     page: T,
     translations: Record<string, T>,
-    lang = "", 
+    lang = ""
 ): T {
     const candidate1 = translations[lang]
     if (candidate1) return candidate1
@@ -136,6 +167,7 @@ function Route({
     if (!m) return null
 
     if (m.full) {
+        currentRoute.value = { ...m }
         if (!Page) return null
 
         const element = Template ? (
