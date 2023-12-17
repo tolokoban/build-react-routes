@@ -9,7 +9,7 @@ function useHash() {
             const newHash = extractHash(event.newURL)
             const absHash = ensureAbsoluteHash(newHash, oldHash)
             if (absHash !== newHash) {
-                history.replaceState({}, "", `#${absHash}`)
+                history.replaceState({}, "", \`#\${absHash}\`)
             }
             setHash(absHash)
         }
@@ -41,7 +41,7 @@ function ensureAbsoluteHash(newHash: string, oldHash: string) {
             path.push(item)
         }
     }
-    return `/${path.filter(nonEmpty).join("/")}`
+    return \`/\${path.filter(nonEmpty).join("/")}\`
 }
 
 function nonEmpty(s: unknown): s is string {
