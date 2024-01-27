@@ -118,6 +118,7 @@ export async function generateRoutes(rootPath: string, routes: Route[]) {
                 ")",
             ],
             "}",
+            ...generateRoutePathDictionary(routes),
             ROUTES_CODE,
         ])
     )
@@ -333,4 +334,33 @@ function extractLang(
     if (filename.length < start.length + end.length) return null
 
     return filename.substring(start.length, filename.length - end.length)
+}
+
+function generateRoutePathDictionary(routes: Route[]) {
+    if (routes.length < 1) return []
+
+    return [
+        "",
+        "export type RoutePath =",
+        routes.map(({ name }) => `| ${JSON.stringify(name)}`),
+        "",
+        "const ROUTES: Record<RoutePath, Array<string | number>> = {",
+        routes.map(({ name }) => {
+            let paramIndex = 0
+            const items = name.split("/")
+            const parts: (string | number)[] = []
+            let buffer: string[] = []
+            for (const item of items) {
+                if (item.includes("[")) {
+                    parts.push(buffer.join("/"), paramIndex++)
+                    buffer = []
+                } else {
+                    buffer.push(item)
+                }
+            }
+            if (buffer.length > 0) parts.push(buffer.join("/"))
+            return `${JSON.stringify(name)}: ${JSON.stringify(parts)},`
+        }),
+        "}",
+    ]
 }

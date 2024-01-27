@@ -1,4 +1,20 @@
 export const ROUTES_CODE = `
+export function goto(route: RoutePath, ...params: string[]) {
+    window.location.hash = hydrateRoute(route, params)
+}
+
+export function makeGoto(route: RoutePath, ...params: string[]) {
+    const path = hydrateRoute(route, params)
+    return () => window.location.hash = path
+}
+
+export function hydrateRoute(route: RoutePath, params: string[]) {
+    const items = ROUTES[route]
+    return items
+        .map(item => typeof item === "number" ? params[item] : item)
+        .join("")
+}
+
 function useHash() {
     const [hash, setHash] = React.useState(
         extractHash(window.location.toString())
