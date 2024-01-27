@@ -336,31 +336,39 @@ function extractLang(
     return filename.substring(start.length, filename.length - end.length)
 }
 
+function parseRouteName(name: string): (string | number)[] {
+    let paramIndex = 0
+    const items = name.split("/")
+    const parts: (string | number)[] = []
+    let buffer: string[] = []
+    for (const item of items) {
+        if (item.includes("[")) {
+            parts.push(buffer.join("/"), paramIndex++)
+            buffer = []
+        } else {
+            buffer.push(item)
+        }
+    }
+    if (buffer.length > 0) parts.push(buffer.join("/"))
+    return parts
+}
+
 function generateRoutePathDictionary(routes: Route[]) {
     if (routes.length < 1) return []
 
+    const splittedPaths: (string | number)[][] = routes.map(({ name }) =>
+        parseRouteName(name)
+    )
     return [
         "",
         "export type RoutePath =",
         routes.map(({ name }) => `| ${JSON.stringify(name)}`),
         "",
         "const ROUTES: Record<RoutePath, Array<string | number>> = {",
-        routes.map(({ name }) => {
-            let paramIndex = 0
-            const items = name.split("/")
-            const parts: (string | number)[] = []
-            let buffer: string[] = []
-            for (const item of items) {
-                if (item.includes("[")) {
-                    parts.push(buffer.join("/"), paramIndex++)
-                    buffer = []
-                } else {
-                    buffer.push(item)
-                }
-            }
-            if (buffer.length > 0) parts.push(buffer.join("/"))
-            return `${JSON.stringify(name)}: ${JSON.stringify(parts)},`
-        }),
+        splittedPaths.map(
+            (sp, index) =>
+                `${JSON.stringify(routes[index].name)}: ${JSON.stringify(sp)},`
+        ),
         "}",
     ]
 }
