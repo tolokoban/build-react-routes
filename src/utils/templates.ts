@@ -1,14 +1,14 @@
 export const ROUTES_CODE = `
-export function goto(route: RoutePath, ...params: string[]) {
+export function goto(route: RoutePath, ...params: (string | number)[]) {
     window.location.hash = hydrateRoute(route, params)
 }
 
-export function makeGoto(route: RoutePath, ...params: string[]) {
+export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
     const path = hydrateRoute(route, params)
     return () => window.location.hash = path
 }
 
-export function hydrateRoute(route: RoutePath, params: string[]) {
+export function hydrateRoute(route: RoutePath, params: (string | number)[]) {
     const items = ROUTES[route]
     return items
         .map(item => typeof item === "number" ? params[item] : item)
