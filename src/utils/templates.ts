@@ -5,7 +5,7 @@ export function goto(route: RoutePath, ...params: (string | number)[]) {
 
 export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
     const path = hydrateRoute(route, params)
-    return () => window.location.hash = path
+    return () => { window.location.hash = path }
 }
 
 export function hydrateRoute(route: RoutePath, params: (string | number)[]) {
