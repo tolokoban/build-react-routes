@@ -12,7 +12,7 @@ export function hydrateRoute(route: RoutePath, params: (string | number)[]) {
     const items = ROUTES[route]
     return items
         .map(item => typeof item === "number" ? params[item] : item)
-        .join("")
+        .join("/")
 }
 
 function useHash() {
