@@ -14,6 +14,10 @@ export interface Route {
     layout: boolean
     loading: boolean
     template: boolean
+    /**
+     * Is there an access module?
+     */
+    access: boolean
     languages: {
         page: string[]
         layout: string[]

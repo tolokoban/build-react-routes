@@ -91,6 +91,20 @@ If a folder contains a `page.tsx`, it will generate a route.
 [Markdown](https://commonmark.org/) you provide in a `page.mdx` file.
 * `layout.tsx`: A layout is UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
 * `loading.tsx`: The component to display while `page.tsx` (or `page.mdx`) is loading.
+* `access.ts`: A function to check is the access for this path is authorized.
+
+## Authorization
+
+```ts
+export default async function access(context: {
+    hash: string,
+    full: string,
+    route: string,
+    params: Record<string, string>
+}): Promise<boolean> {
+    ...
+}
+```
 
 ## Multilingual pages
 

@@ -1,144 +1,196 @@
-export const ROUTES_CODE = `
+export const CODE_FOR_ROUTES_HEAD = `
+import React from "react"
+
+import { RoutePath, RouteMatch } from "./types"
+`
+
+export const CODE_FOR_ROUTES_TAIL = `
+/**
+ * Using this function prevents dangling routes from being
+ * discovered at runtime. If you try to reach a route that
+ * does not exist anymore, you will get a compilation error.
+ * @param route Canonic name of the target route.
+ * @param params If the canonical name has \`[name]\` parts,
+ * they will be hydrated by the \`params\`.
+ * For instance, \`goto("/article/[id]/detail", 27)\` will lead
+ * to \`"/article/27/detail"\`.
+ * @returns \`false\` if we already are on this page (with the same params).
+ */
 export function goto(route: RoutePath, ...params: (string | number)[]) {
-    window.location.hash = hydrateRoute(route, params)
-}
-
-export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
+    console.log("Goto:", route, params)
     const path = hydrateRoute(route, params)
-    return () => { window.location.hash = path }
+    console.log("current path:", currentRouteContext.value?.path)
+    if (path === currentRouteContext.value?.path) return false
+
+    window.location.hash = path
+    return true
 }
 
-export function hydrateRoute(route: RoutePath, params: (string | number)[]) {
+/**
+ * Syntaxic sugar to return \`() => { goto(...) }\`.
+ */
+export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
+    return () => { goto(route, ...params) }
+}
+
+export function isRouteEqualTo(route: RoutePath, ...params: (string | number)[]) {
+    return currentRouteContext.value?.path === hydrateRoute(route, params)
+}
+
+export function findRouteForPath(path: string): RouteMatch | null {
+    let bestMatch: RouteMatch | null = null
+    for (const parts of Object.values(ROUTES)) {
+        const match = matchRoute(path, parts)
+        if (!match) continue
+
+        if (match.distance === 0) return match
+
+        if (!bestMatch || match.distance < bestMatch.distance) {
+            bestMatch = match
+        }
+    }
+    return bestMatch
+}
+
+export function matchRoute(path: string, parts: string[]): RouteMatch | null {
+    let current = path
+    const params: Record<string, string> = {}
+    for (let i = 0; i < parts.length; i++) {
+        if (current.length < 1) return null
+
+        const part = parts[i]
+        if (part.startsWith("[")) {
+            const name = part.substring(1, part.length - 1)
+            const [head, tail] = decapitate(current)
+            params[name] = head
+            current = tail
+        } else if (current.startsWith(part)) {
+            current = current.substring(part.length + 1)
+        } else {
+            return null
+        }
+    }
+    const match: RouteMatch = {
+        path,
+        route: parts.join("/") as RoutePath,
+        params,
+        distance: current.length,
+    }
+    return match
+}
+
+function decapitate(text: string): [string, string] {
+    const pos = text.indexOf("/")
+    if (pos < 0) return [text, ""]
+
+    return [text.substring(0, pos), text.substring(pos + 1)]
+}
+
+function hydrateRoute(route: RoutePath, params: (string | number)[]) {
     const items = ROUTES[route]
+    let i = 0
     return items
-        .map(item => typeof item === "number" ? params[item] : item)
+        .map(item => (item.charAt(0) === "[" ? params[i++] : item))
         .join("/")
 }
 
-function useHash() {
-    const [hash, setHash] = React.useState(
-        extractHash(window.location.toString())
-    )
-    React.useEffect(() => {
-        const handler = (event: HashChangeEvent) => {
-            const oldHash = extractHash(event.oldURL)
-            const newHash = extractHash(event.newURL)
-            const absHash = ensureAbsoluteHash(newHash, oldHash)
-            if (absHash !== newHash) {
-                history.replaceState({}, "", \`#\${absHash}\`)
-            }
-            setHash(absHash)
-        }
-        window.addEventListener("hashchange", handler)
-        return () => window.removeEventListener("hashchange", handler)
-    }, [])
-    return hash
-}
+class RouteContext {
+    private readonly listeners = new Set<(context: RouteMatch | null) => void>()
+    private _value: RouteMatch | null = null
+    private _hash = ""
 
-function extractHash(url: string) {
-    const hash = new URL(url).hash
-    if (!hash) return "/"
-
-    return hash.startsWith("#") ? hash.substring(1) : hash
-}
-
-function ensureAbsoluteHash(newHash: string, oldHash: string) {
-    if (newHash.startsWith("/")) return newHash
-
-    let hash = newHash
-    while (hash.startsWith("./")) {
-        hash = hash.substring("./".length)
+    constructor() {
+        this.setHash(this.extractHash(window.location.href))
+        window.addEventListener("hashchange", this.handleHashChange)
     }
-    const path = oldHash.split("/").filter(nonEmpty)
-    for (const item of newHash.split("/")) {
-        if (item === "..") {
-            if (path.length > 0) path.pop()
-        } else {
-            path.push(item)
-        }
+
+    addListener(listener: (value: RouteMatch | null) => void) {
+        this.listeners.add(listener)
     }
-    return \`/\${path.filter(nonEmpty).join("/")}\`
-}
 
-function nonEmpty(s: unknown): s is string {
-    return typeof s === "string" && s.trim().length > 0
-}
-
-interface HashMatch {
-    params: { [name: string]: string }
-    full: boolean
-    route: string
-}
-
-class ActiveValue<T> {
-    private readonly listeners = new Set<(value: T) => void>()
-    private _value: T
-
-    constructor(value: T) {
-        this._value = value
+    removeListener(listener: (value: RouteMatch | null) => void) {
+        this.listeners.delete(listener)
     }
 
     get value() {
         return this._value
     }
-    set value(value: T) {
-        if (value === this._value) return
 
+    private setHash(hash: string) {
+        if (this._hash === hash) return
+
+        this._hash = hash
+        const value = findRouteForPath(hash)
         this._value = value
         this.listeners.forEach(listener => listener(value))
     }
 
-    addListener(listener: (value: T) => void) {
-        this.listeners.add(listener)
-    }
-
-    removeListener(listener: (value: T) => void) {
-        this.listeners.delete(listener)
-    }
-}
-
-const currentRoute = new ActiveValue({
-    params: {},
-    full: false,
-    route: "/",
-})
-
-function toParams(value: HashMatch) {
-    return {
-        ...value.params,
-        $route: value.route,
-    }
-}
-
-export function useRouteParams(): Record<string, string> {
-    const [params, setParams] = React.useState(toParams(currentRoute.value))
-    React.useEffect(() => {
-        const update = (value: HashMatch) => {
-            setParams(toParams(value))
+    private handleHashChange = (event: HashChangeEvent) => {
+        const oldHash = this.extractHash(event.oldURL)
+        const newHash = this.extractHash(event.newURL)
+        const absHash = this.ensureAbsoluteHash(newHash, oldHash)
+        if (absHash !== newHash) {
+            history.replaceState({}, "", \`#$\{absHash}\`)
         }
-        currentRoute.addListener(update)
-        return () => currentRoute.removeListener(update)
+        this.setHash(absHash)
+    }
+
+    private extractHash(url: string) {
+        const hash = new URL(url).hash
+        if (!hash) return "/"
+
+        return hash.startsWith("#") ? hash.substring(1) : hash
+    }
+
+    private ensureAbsoluteHash(newHash: string, oldHash: string) {
+        if (newHash.startsWith("/")) return newHash
+
+        let hash = newHash
+        while (hash.startsWith("./")) {
+            hash = hash.substring("./".length)
+        }
+        const path = oldHash.split("/").filter(this.nonEmpty)
+        for (const item of newHash.split("/")) {
+            if (item === "..") {
+                if (path.length > 0) path.pop()
+            } else {
+                path.push(item)
+            }
+        }
+        return \`/$\{path.filter(this.nonEmpty).join("/")}\`
+    }
+
+    private readonly nonEmpty = (s: unknown): s is string => {
+        return typeof s === "string" && s.trim().length > 0
+    }
+}
+
+const currentRouteContext = new RouteContext()
+
+export function useRouteContext(): RouteMatch | null {
+    const [params, setParams] = React.useState(currentRouteContext.value)
+    React.useEffect(() => {
+        const update = (value: RouteMatch | null) => {
+            setParams(value)
+        }
+        currentRouteContext.addListener(update)
+        return () => currentRouteContext.removeListener(update)
     }, [])
     return params
 }
+`
 
-function match(hash: string, path: string): null | HashMatch {
-    const params: Record<string, string> = {}
-    const hashItems = hash.split("/").filter(nonEmpty)
-    const pathItems = path.split("/").filter(nonEmpty)
-    for (let i = 0; i < Math.min(hashItems.length, pathItems.length); i++) {
-        const hashItem = hashItems[i]
-        const pathItem = pathItems[i]
-        if (pathItem.startsWith("[")) {
-            const paramName = pathItem.substring(1, pathItem.length - 1)
-            params[paramName] = hashItem
-        } else if (hashItem !== pathItem) return null
-    }
+export const CODE_FOR_INDEX_HEAD = `
+export * from "./routes"
+export * from "./types"
 
-    const full = hashItems.length === pathItems.length
-    return { full, params, route: path }
-}
+import React from "react"
 
+import { matchRoute, useRouteContext, ROUTES } from "./routes"
+import { RouteMatch } from "./types"
+`
+
+export const CODE_FOR_INDEX_TAIL = `
 function intl<T extends PageComponent | ContainerComponent | JSX.Element>(
     page: T,
     translations: Record<string, T>,
@@ -168,6 +220,7 @@ interface RouteProps {
     Page?: PageComponent
     Layout?: ContainerComponent
     Template?: ContainerComponent
+    access?: (context: RouteMatch | null) => Promise<boolean>
 }
 
 function Route({
@@ -177,13 +230,29 @@ function Route({
     Page,
     Layout,
     Template,
+    access,
 }: RouteProps) {
-    const hash = useHash()
-    const m = match(hash, path)
+    const [authorized, setAuthorized] = React.useState<boolean | undefined>(
+        false
+    )
+    const context = useRouteContext()
+    const m = context && matchRoute(context.path, ROUTES[path])
+    React.useEffect(() => {
+        if (!context || !m || typeof authorized === "undefined") return
+
+        if (!access) {
+            setAuthorized(true)
+        } else {
+            setAuthorized(undefined)
+            access(context).then(setAuthorized)
+        }
+    }, [access, context])
+
     if (!m) return null
 
-    if (m.full) {
-        currentRoute.value = { ...m }
+    if (!authorized) return fallback
+
+    if (m.distance === 0) {
         if (!Page) return null
 
         const element = Template ? (
@@ -209,5 +278,17 @@ function Route({
     ) : (
         <>{children}</>
     )
+}
+`
+
+export const CODE_FOR_TYPES = `
+export interface RouteMatch {
+    path: string
+    route: RoutePath
+    params: Record<string, string>
+    /**
+     * 0 means a perfect match.
+     */
+    distance: number
 }
 `

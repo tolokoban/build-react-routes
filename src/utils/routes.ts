@@ -3,13 +3,23 @@ import Path from "node:path"
 import { listDirs, listFiles, saveText } from "./fs"
 import { Route } from "./types"
 import { CodeSection, codeLinesToString } from "./code"
-import { ROUTES_CODE } from "./templates"
+import {
+    CODE_FOR_INDEX_HEAD,
+    CODE_FOR_INDEX_TAIL,
+    CODE_FOR_ROUTES_HEAD,
+    CODE_FOR_ROUTES_TAIL,
+    CODE_FOR_TYPES,
+} from "./templates"
 
 const DISCLAIMER = [
     "/**",
+    " * build-react-routes",
+    " *",
     " * WARNING! this file has been generated automatically.",
     " * Please do not edit it because it will probably be overwritten.",
-    ` * ${new Date().toISOString()}`,
+    " *",
+    " * If you find a bug or if you need an improvement, please fill an issue:",
+    " * https://github.com/tolokoban/build-react-routes/issues",
     " */",
 ]
 
@@ -47,6 +57,7 @@ export async function browseRoutes(
         layout: exists(path, "layout.tsx"),
         loading: exists(path, "loading.tsx"),
         template: exists(path, "template.tsx"),
+        access: exists(path, "access.ts"),
         languages: await findLanguages(path),
         children: [],
         parent,
@@ -86,16 +97,50 @@ function exists(path: string, filename: string): boolean {
 }
 
 export async function generateRoutes(rootPath: string, routes: Route[]) {
+    await writeIndexFile(rootPath, routes)
+    await writeTypesFile(rootPath, routes)
+    await writeRoutesFile(rootPath, routes)
+}
+
+async function writeRoutesFile(rootPath: string, routes: Route[]) {
+    await saveText(
+        Path.resolve(rootPath, "routes.ts"),
+        codeLinesToString([
+            ...DISCLAIMER,
+            CODE_FOR_ROUTES_HEAD,
+            ...generateRoutePathDictionary(routes),
+            CODE_FOR_ROUTES_TAIL,
+        ])
+    )
+}
+
+async function writeTypesFile(rootPath: string, routes: Route[]) {
+    await saveText(
+        Path.resolve(rootPath, "types.ts"),
+        codeLinesToString([
+            ...DISCLAIMER,
+            "export type RoutePath =",
+            routes.map(({ name }) => `| ${JSON.stringify(name)}`),
+            CODE_FOR_TYPES,
+        ])
+    )
+}
+
+/**
+ * `index.tsx` file owns the root component for the application.
+ */
+async function writeIndexFile(rootPath: string, routes: Route[]) {
     const [firstRoute] = routes
     const routesWithPages = routes.filter(({ page }) => Boolean(page))
     await saveText(
         Path.resolve(rootPath, "index.tsx"),
         codeLinesToString([
             ...DISCLAIMER,
-            'import React from "react"',
+            CODE_FOR_INDEX_HEAD,
             ...getCodeToImportContainer(routes, "layout", rootPath),
             ...getCodeToImportContainer(routes, "loading", rootPath),
             ...getCodeToImportContainer(routes, "template", rootPath),
+            ...getCodeToImportAccess(routes, rootPath),
             ...routesWithPages.map(route =>
                 route.languages.page
                     .map(
@@ -118,8 +163,7 @@ export async function generateRoutes(rootPath: string, routes: Route[]) {
                 ")",
             ],
             "}",
-            ...generateRoutePathDictionary(routes),
-            ROUTES_CODE,
+            CODE_FOR_INDEX_TAIL,
         ])
     )
 }
@@ -145,6 +189,20 @@ function getCodeToImportContainer(
                 })
                 .join("\n")
         )
+}
+
+function getCodeToImportAccess(routes: Route[], rootPath: string): string[] {
+    const prop = "access"
+    return routes
+        .filter(route => route.access)
+        .map(route => {
+            const path = Path.join(
+                Path.relative(rootPath, route.path),
+                "access"
+            )
+            const name = `${prop}${route.id}`
+            return `import ${name} from "./${path}"`
+        })
 }
 
 function pageName(route: Route, lang: string): string {
@@ -233,13 +291,16 @@ function createMultiLangElements(routes: Route[]): CodeSection[] {
 function createRoutesTree(route: Route): CodeSection {
     const loading = getLoading(route)
     const template = getTemplate(route)
-    const routeCode = `Route path="${route.name}"${makeProp(
+    let routeCode = `Route path="${route.name}"${makeProp(
         route,
         "page",
         "pg"
     )}${makeProp(route, "layout", "ly")}${
         template ? ` Template={${template}}` : ""
     } ${loading}`
+    if (route.access) {
+        routeCode += ` access={access${route.id}}`
+    }
     return route.children.length > 0
         ? [
               `<${routeCode}>`,
@@ -336,14 +397,13 @@ function extractLang(
     return filename.substring(start.length, filename.length - end.length)
 }
 
-function parseRouteName(name: string): (string | number)[] {
-    let paramIndex = 0
+function parseRouteName(name: string): string[] {
     const items = name.split("/")
-    const parts: (string | number)[] = []
+    const parts: string[] = []
     let buffer: string[] = []
     for (const item of items) {
         if (item.includes("[")) {
-            parts.push(buffer.join("/"), paramIndex++)
+            parts.push(buffer.join("/"), item)
             buffer = []
         } else {
             buffer.push(item)
@@ -356,15 +416,12 @@ function parseRouteName(name: string): (string | number)[] {
 function generateRoutePathDictionary(routes: Route[]) {
     if (routes.length < 1) return []
 
-    const splittedPaths: (string | number)[][] = routes.map(({ name }) =>
+    const splittedPaths: string[][] = routes.map(({ name }) =>
         parseRouteName(name)
     )
     return [
         "",
-        "export type RoutePath =",
-        routes.map(({ name }) => `| ${JSON.stringify(name)}`),
-        "",
-        "const ROUTES: Record<RoutePath, Array<string | number>> = {",
+        "export const ROUTES: Record<RoutePath, string[]> = {",
         splittedPaths.map(
             (sp, index) =>
                 `${JSON.stringify(routes[index].name)}: ${JSON.stringify(sp)},`

@@ -6,6 +6,7 @@ import Chokidar from "chokidar"
 import { color, logError, logRoute } from "./utils/log"
 import { browseRoutes, flattenRoutes, generateRoutes } from "./utils/routes"
 import { Route } from "./utils/types"
+import { parseProgramArguments } from "./utils/args"
 
 function stringifyRoute(route: Route): string {
     return `{${route.name},${route.page},${route.layout},${route.loading},${
@@ -19,16 +20,9 @@ function stringifyRoutes(routes: Route[]): string {
 
 async function start() {
     try {
-        const arg = process.argv[2]
-        if (!arg) throw Error("One argument is mandatory: the folder to watch!")
-
-        const root = Path.resolve(arg)
-        console.log(color("Watching:", "LightBlue"), root)
-        if (!FS.existsSync(root)) {
-            logError("Folder not found!")
-            process.exit(1)
-        }
-
+        const { targets, watchMode } = parseProgramArguments()
+        const [root] = targets
+        console.log(color("Processing folder:", "LightBlue"), root)
         let previousStructure = ""
         const generate = async () => {
             const route = await browseRoutes(root)
@@ -43,11 +37,16 @@ async function start() {
             await generateRoutes(root, routes)
         }
         await generate()
-        let timeout: NodeJS.Timeout | undefined = undefined
-        Chokidar.watch(root).on("all", (event, path) => {
-            clearTimeout(timeout)
-            timeout = setTimeout(generate, 300)
-        })
+        if (watchMode) {
+            console.log("")
+            console.log(color("Watching for files changes...", "LightBlue"))
+            console.log("")
+            let timeout: NodeJS.Timeout | undefined = undefined
+            Chokidar.watch(root).on("all", (event, path) => {
+                clearTimeout(timeout)
+                timeout = setTimeout(generate, 300)
+            })
+        }
     } catch (ex) {
         logError(ex)
     }

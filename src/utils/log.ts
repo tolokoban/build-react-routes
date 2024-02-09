@@ -40,6 +40,7 @@ export function logRoute(route: Route) {
         color("page", route.page ? "LightGreen" : "LightRed"),
         color("layout", route.layout ? "LightGreen" : "LightRed"),
         color("loading", route.loading ? "LightGreen" : "LightRed"),
+        color("access", route.access ? "LightGreen" : "LightRed"),
         route.path
     )
 }
