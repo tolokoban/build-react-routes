@@ -235,19 +235,27 @@ function Route({
     const [authorized, setAuthorized] = React.useState<boolean | undefined>(
         false
     )
+    console.log(\`<Route path="$\{path}" />\`, "authorized:", authorized)
     const context = useRouteContext()
     const m = context && matchRoute(context.path, ROUTES[path])
     React.useEffect(() => {
-        if (!context || !m || typeof authorized === "undefined") return
+        if (!context || !m) return
 
         if (!access) {
             setAuthorized(true)
         } else {
             setAuthorized(undefined)
-            access(context).then(setAuthorized)
+            access(context)
+                .then(setAuthorized)
+                .catch(ex => {
+                    console.error("Error in access() function:", ex)
+                    setAuthorized(false)
+                })
+
         }
     }, [access, context])
 
+    console.log("Match:", m)
     if (!m) return null
 
     if (!authorized) return fallback
