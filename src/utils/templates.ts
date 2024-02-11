@@ -17,9 +17,7 @@ export const CODE_FOR_ROUTES_TAIL = `
  * @returns \`false\` if we already are on this page (with the same params).
  */
 export function goto(route: RoutePath, ...params: (string | number)[]) {
-    console.log("Goto:", route, params)
     const path = hydrateRoute(route, params)
-    console.log("current path:", currentRouteContext.value?.path)
     if (path === currentRouteContext.value?.path) return false
 
     window.location.hash = path
@@ -235,7 +233,6 @@ function Route({
     const [authorized, setAuthorized] = React.useState<boolean | undefined>(
         false
     )
-    console.log(\`<Route path="$\{path}" />\`, "authorized:", authorized)
     const context = useRouteContext()
     const m = context && matchRoute(context.path, ROUTES[path])
     React.useEffect(() => {
@@ -255,7 +252,6 @@ function Route({
         }
     }, [access, context])
 
-    console.log("Match:", m)
     if (!m) return null
 
     if (!authorized) return fallback
