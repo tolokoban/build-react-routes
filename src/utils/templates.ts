@@ -234,7 +234,7 @@ function Route({
         false
     )
     const context = useRouteContext()
-    const m = context && matchRoute(context.path, ROUTES[path] as RoutePath)
+    const m = context && matchRoute(context.path, ROUTES[path as RoutePath])
     React.useEffect(() => {
         if (!context || !m) return
 
