@@ -185,7 +185,7 @@ export * from "./types"
 import React from "react"
 
 import { matchRoute, useRouteContext, ROUTES } from "./routes"
-import { RouteMatch } from "./types"
+import { RouteMatch, RoutePath } from "./types"
 `
 
 export const CODE_FOR_INDEX_TAIL = `
