@@ -155,6 +155,7 @@ async function writeIndexFile(rootPath: string, routes: Route[]) {
                     .join("\n")
             ),
             "",
+            "// eslint-disable-next-line @typescript-eslint/no-unused-vars",
             "export default function App({ lang }: { lang?: string }) {",
             [
                 ...createMultiLangElements(routes),

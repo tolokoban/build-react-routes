@@ -189,6 +189,7 @@ import { RouteMatch, RoutePath } from "./types"
 `
 
 export const CODE_FOR_INDEX_TAIL = `
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function intl<T extends PageComponent | ContainerComponent | JSX.Element>(
     page: T,
     translations: Record<string, T>,
