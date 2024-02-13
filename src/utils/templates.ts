@@ -50,7 +50,9 @@ export function findRouteForPath(path: string): RouteMatch | null {
     return bestMatch
 }
 
-export function matchRoute(path: string, parts: string[]): RouteMatch | null {
+export function matchRoute(path: string, parts: string[] | undefined): RouteMatch | null {
+    if (!parts) return null
+    
     let current = path
     const params: Record<string, string> = {}
     for (let i = 0; i < parts.length; i++) {
