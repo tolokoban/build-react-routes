@@ -158,6 +158,7 @@ async function writeIndexFile(rootPath: string, routes: Route[]) {
             "// eslint-disable-next-line @typescript-eslint/no-unused-vars",
             "export default function App({ lang }: { lang?: string }) {",
             [
+                `const context = useRouteContext()`,
                 ...createMultiLangElements(routes),
                 "return (",
                 createRoutesTree(firstRoute),
@@ -304,11 +305,11 @@ function createRoutesTree(route: Route): CodeSection {
     }
     return route.children.length > 0
         ? [
-              `<${routeCode}>`,
+              `<${routeCode} context={context}>`,
               ...route.children.map(createRoutesTree),
               `</Route>`,
           ]
-        : [`<${routeCode} />`]
+        : [`<${routeCode} context={context}/>`]
 }
 
 function getLoading(route: Route) {

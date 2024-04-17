@@ -221,6 +221,7 @@ interface RouteProps {
     Page?: PageComponent
     Layout?: ContainerComponent
     Template?: ContainerComponent
+    context: RouteMatch | null
     access?: (context: RouteMatch | null) => Promise<boolean>
 }
 
@@ -232,18 +233,18 @@ function Route({
     Layout,
     Template,
     access,
+    context
 }: RouteProps) {
     const [authorized, setAuthorized] = React.useState<boolean | undefined>(
         false
     )
-    const context = useRouteContext()
     const m = context && matchRoute(context.path, ROUTES[path as RoutePath])
     React.useEffect(() => {
-        if (!context || !m) return
+        if (!m) return
 
         if (!access) {
             setAuthorized(true)
-        } else {
+        } else if (context) {
             setAuthorized(undefined)
             access(context)
                 .then(setAuthorized)
@@ -253,7 +254,7 @@ function Route({
                 })
 
         }
-    }, [access, context])
+    }, [access])
 
     if (!m) return null
 
