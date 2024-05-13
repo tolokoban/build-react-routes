@@ -97,11 +97,16 @@ function hydrateRoute(route: RoutePath, params: (string | number)[]) {
 class RouteContext {
     private readonly listeners = new Set<(context: RouteMatch | null) => void>()
     private _value: RouteMatch | null = null
-    private _hash = ""
 
-    constructor() {
-        this.setHash(this.extractHash(window.location.href))
-        window.addEventListener("hashchange", this.handleHashChange)
+    constructor(
+        private readonly security: [
+            RoutePath,
+            (path: RoutePath) => Promise<RoutePath | undefined>
+        ][]
+    ) {
+        this.setHash(this.extractHash(window.location.href)).then(() =>
+            window.addEventListener("hashchange", this.handleHashChange)
+        )
     }
 
     addListener(listener: (value: RouteMatch | null) => void) {
@@ -116,11 +121,22 @@ class RouteContext {
         return this._value
     }
 
-    private setHash(hash: string) {
-        if (this._hash === hash) return
+    private async setHash(targetHash: string) {
+        let hash = targetHash
+        let value = findRouteForPath(hash)
+        if (value) {
+            for (const [route, access] of this.security) {
+                if (!value.route.startsWith(route)) continue
 
-        this._hash = hash
-        const value = findRouteForPath(hash)
+                const authorizedRoute = await access(value.route)
+                if (authorizedRoute && authorizedRoute !== value.route) {
+                    value = findRouteForPath(authorizedRoute)
+                    if (!value) break
+                }
+            }
+        }
+        if (this._value?.route === value?.route) return
+
         this._value = value
         this.listeners.forEach(listener => listener(value))
     }
@@ -164,8 +180,6 @@ class RouteContext {
         return typeof s === "string" && s.trim().length > 0
     }
 }
-
-const currentRouteContext = new RouteContext()
 
 export function useRouteContext(): RouteMatch | null {
     const [params, setParams] = React.useState(currentRouteContext.value)
@@ -222,7 +236,6 @@ interface RouteProps {
     Layout?: ContainerComponent
     Template?: ContainerComponent
     context: RouteMatch | null
-    access?: (context: RouteMatch | null) => Promise<boolean>
 }
 
 function Route({
@@ -232,47 +245,25 @@ function Route({
     Page,
     Layout,
     Template,
-    access,
-    context
+    context,
 }: RouteProps) {
-    const [authorized, setAuthorized] = React.useState<boolean | undefined>(
-        false
-    )
-    const m = context && matchRoute(context.path, ROUTES[path as RoutePath])
-    React.useEffect(() => {
-        if (!m) return
+    const match = context && matchRoute(context.path, ROUTES[path as RoutePath])
 
-        if (!access) {
-            setAuthorized(true)
-        } else if (context) {
-            setAuthorized(undefined)
-            access(context)
-                .then(setAuthorized)
-                .catch(ex => {
-                    console.error("Error in access() function:", ex)
-                    setAuthorized(false)
-                })
+    if (!match) return null
 
-        }
-    }, [access])
-
-    if (!m) return null
-
-    if (!authorized) return fallback
-
-    if (m.distance === 0) {
+    if (match.distance === 0) {
         if (!Page) return null
 
         const element = Template ? (
-            <Template params={m.params}>
-                <Page params={m.params} />
+            <Template params={match.params}>
+                <Page params={match.params} />
             </Template>
         ) : (
-            <Page params={m.params} />
+            <Page params={match.params} />
         )
         if (Layout) {
             return (
-                <Layout params={m.params}>
+                <Layout params={match.params}>
                     <React.Suspense fallback={fallback}>
                         {element}
                     </React.Suspense>
@@ -282,7 +273,7 @@ function Route({
         return <React.Suspense fallback={fallback}>{element}</React.Suspense>
     }
     return Layout ? (
-        <Layout params={m.params}>{children}</Layout>
+        <Layout params={match.params}>{children}</Layout>
     ) : (
         <>{children}</>
     )

@@ -52,4 +52,5 @@ async function start() {
     }
 }
 
+console.log(color("build-react-route", "LightPurple"), "0.8.1")
 start()

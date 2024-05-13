@@ -95,16 +95,22 @@ If a folder contains a `page.tsx`, it will generate a route.
 
 ## Authorization
 
+Along side with any `page.tsx` file, you can add a `access.ts` file that looks like
+the following example:
+
 ```ts
-export default async function access(context: {
-    hash: string,
-    full: string,
-    route: string,
-    params: Record<string, string>
-}): Promise<boolean> {
-    ...
+export default async function access(path: RoutePath): Promise<RoutePath | undefined> {
+    if (path.startsWith("/doc")) return
+
+    const isLogged = await checkLogin()
+    if (!isLogged) return "/login"
 }
 ```
+
+The function gets the route the user wants to reach.
+And it returns the route the user will actually reach.
+
+Returning `undefined` means that the wanted route is accepted.
 
 ## Multilingual pages
 

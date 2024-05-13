@@ -108,8 +108,12 @@ async function writeRoutesFile(rootPath: string, routes: Route[]) {
         codeLinesToString([
             ...DISCLAIMER,
             CODE_FOR_ROUTES_HEAD,
+            ...getCodeToImportAccess(routes, rootPath),
             ...generateRoutePathDictionary(routes),
             CODE_FOR_ROUTES_TAIL,
+            `const currentRouteContext = new RouteContext([`,
+            createAccessArguments(routes),
+            `])`,
         ])
     )
 }
@@ -140,7 +144,6 @@ async function writeIndexFile(rootPath: string, routes: Route[]) {
             ...getCodeToImportContainer(routes, "layout", rootPath),
             ...getCodeToImportContainer(routes, "loading", rootPath),
             ...getCodeToImportContainer(routes, "template", rootPath),
-            ...getCodeToImportAccess(routes, rootPath),
             ...routesWithPages.map(route =>
                 route.languages.page
                     .map(
@@ -300,9 +303,6 @@ function createRoutesTree(route: Route): CodeSection {
     )}${makeProp(route, "layout", "ly")}${
         template ? ` Template={${template}}` : ""
     } ${loading}`
-    if (route.access) {
-        routeCode += ` access={access${route.id}}`
-    }
     return route.children.length > 0
         ? [
               `<${routeCode} context={context}>`,
@@ -430,4 +430,13 @@ function generateRoutePathDictionary(routes: Route[]) {
         ),
         "}",
     ]
+}
+
+function createAccessArguments(routes: Route[]) {
+    const args: Array<[route: string, access: string]> = routes
+        .filter(route => route.access)
+        .map(route => [route.name, `access${route.id}`])
+    return args.map(
+        ([route, access]) => `[${JSON.stringify(route)}, ${access}]`
+    )
 }
