@@ -119,12 +119,17 @@ async function writeRoutesFile(rootPath: string, routes: Route[]) {
 }
 
 async function writeTypesFile(rootPath: string, routes: Route[]) {
+    const routesNames = routes.map(({ name }) => name)
     await saveText(
         Path.resolve(rootPath, "types.ts"),
         codeLinesToString([
             ...DISCLAIMER,
             "export type RoutePath =",
-            routes.map(({ name }) => `| ${JSON.stringify(name)}`),
+            routesNames.map(name => `| ${JSON.stringify(name)}`),
+            "",
+            `export function isRoutePath(path: string): path is RoutePath {`,
+            [`return ${JSON.stringify(routesNames)}.includes(path)`],
+            "}",
             CODE_FOR_TYPES,
         ])
     )
