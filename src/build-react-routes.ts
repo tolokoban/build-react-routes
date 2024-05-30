@@ -7,6 +7,7 @@ import { color, logError, logRoute } from "./utils/log"
 import { browseRoutes, flattenRoutes, generateRoutes } from "./utils/routes"
 import { Route } from "./utils/types"
 import { parseProgramArguments } from "./utils/args"
+import { version } from "./package.json"
 
 function stringifyRoute(route: Route): string {
     return `{${route.name},${route.page},${route.layout},${route.loading},${
@@ -52,5 +53,5 @@ async function start() {
     }
 }
 
-console.log(color("build-react-route", "LightPurple"), "0.8.1")
+console.log(color("build-react-route", "LightPurple"), version)
 start()
