@@ -132,6 +132,10 @@ class RouteContext {
                 if (authorizedRoute && authorizedRoute !== value.route) {
                     value = findRouteForPath(authorizedRoute)
                     if (!value) break
+
+                    this._value = null
+                    goto(value.path as RoutePath)
+                    return
                 }
             }
         }
@@ -191,6 +195,45 @@ export function useRouteContext(): RouteMatch | null {
         return () => currentRouteContext.removeListener(update)
     }, [])
     return params
+}
+
+export function useRouteParams<T extends string>(
+    ...names: T[]
+): Partial<Record<T, string>> {
+    const context = useRouteContext()
+    const params: Partial<Record<T, string>> = {}
+    if (context) {
+        for (const name of names) {
+            const value = context.params[name]
+            if (typeof value === "string") params[name] = value
+        }
+    }
+    return params
+}
+
+const isNumber = (data: unknown): data is number => typeof data === "number"
+
+export function useRouteParamAsInt(name: string, defaultValue = 0): number {
+    return Math.round(useRouteParam(name, defaultValue, isNumber))
+}
+
+export function useRouteParamAsFloat(name: string, defaultValue = 0): number {
+    return useRouteParam(name, defaultValue, isNumber)
+}
+
+export function useRouteParam<T>(
+    name: string,
+    defaultValue: T,
+    typeGuard: (data: unknown) => data is T
+): T {
+    const params = useRouteParams(name)
+    try {
+        const text = decodeURIComponent(params[name] ?? "")
+        const value = JSON.parse(text)
+        return typeGuard(value) ? value : defaultValue
+    } catch (ex) {
+        return defaultValue
+    }
 }
 `
 
