@@ -18,7 +18,7 @@ export const CODE_FOR_ROUTES_TAIL = `
  */
 export function goto(route: RoutePath, ...params: (string | number)[]) {
     const path = hydrateRoute(route, params)
-    if (path === getRouteContext.value?.path) return false
+    if (path === getRouteContext().value?.path) return false
 
     window.location.hash = path
     return true
@@ -32,7 +32,7 @@ export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
 }
 
 export function isRouteEqualTo(route: RoutePath, ...params: (string | number)[]) {
-    return getRouteContext.value?.path === hydrateRoute(route, params)
+    return getRouteContext().value?.path === hydrateRoute(route, params)
 }
 
 export function findRouteForPath(path: string): RouteMatch | null {
@@ -124,8 +124,7 @@ class RouteContext {
         return this._value
     }
 
-    private async setHash(targetHash: string) {
-        let hash = targetHash
+    private async setHash(hash: string) {
         let value = findRouteForPath(hash)
         if (value) {
             for (const [route, access] of this.security) {
@@ -189,13 +188,13 @@ class RouteContext {
 }
 
 export function useRouteContext(): RouteMatch | null {
-    const [params, setParams] = React.useState(getRouteContext.value)
+    const [params, setParams] = React.useState(getRouteContext().value)
     React.useEffect(() => {
         const update = (value: RouteMatch | null) => {
             setParams(value)
         }
-        getRouteContext.addListener(update)
-        return () => getRouteContext.removeListener(update)
+        getRouteContext().addListener(update)
+        return () => getRouteContext().removeListener(update)
     }, [])
     return params
 }
