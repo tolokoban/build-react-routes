@@ -104,9 +104,12 @@ class RouteContext {
             (path: RoutePath) => Promise<RoutePath | undefined>
         ][]
     ) {
-        this.setHash(this.extractHash(window.location.href)).then(() =>
+        const hash = this.extractHash(window.location.href)
+        this.setHash(hash).then(() =>
             window.addEventListener("hashchange", this.handleHashChange)
-        )
+        ).catch(ex => {
+            console.error(\`Unable to set hash to "\${hash}":\`, ex)
+        })
     }
 
     addListener(listener: (value: RouteMatch | null) => void) {
