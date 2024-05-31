@@ -111,15 +111,18 @@ async function writeRoutesFile(rootPath: string, routes: Route[]) {
             ...getCodeToImportAccess(routes, rootPath),
             ...generateRoutePathDictionary(routes),
             CODE_FOR_ROUTES_TAIL,
-            `const SECURITY = [`,
+            "// Initialize RouteContext with potential access files",
+            `const SECURITY: [RoutePath, (path: RoutePath) => Promise<RoutePath | undefined>][] = [`,
             createAccessArguments(routes),
             "]",
-            "let currentRouteContext: null | typeof SECURITY = null",
+            "let currentRouteContext: null | RouteContext = null",
+            "",
             "function getRouteContext() {",
             [
                 "if (!currentRouteContext) currentRouteContext = new RouteContext(SECURITY)",
                 "return currentRouteContext",
             ],
+            "}",
         ])
     )
 }
