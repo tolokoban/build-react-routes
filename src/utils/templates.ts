@@ -18,7 +18,7 @@ export const CODE_FOR_ROUTES_TAIL = `
  */
 export function goto(route: RoutePath, ...params: (string | number)[]) {
     const path = hydrateRoute(route, params)
-    if (path === currentRouteContext.value?.path) return false
+    if (path === getRouteContext.value?.path) return false
 
     window.location.hash = path
     return true
@@ -32,7 +32,7 @@ export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
 }
 
 export function isRouteEqualTo(route: RoutePath, ...params: (string | number)[]) {
-    return currentRouteContext.value?.path === hydrateRoute(route, params)
+    return getRouteContext.value?.path === hydrateRoute(route, params)
 }
 
 export function findRouteForPath(path: string): RouteMatch | null {
@@ -148,14 +148,14 @@ class RouteContext {
         this.listeners.forEach(listener => listener(value))
     }
 
-    private handleHashChange = (event: HashChangeEvent) => {
+    private readonly handleHashChange = (event: HashChangeEvent) => {
         const oldHash = this.extractHash(event.oldURL)
         const newHash = this.extractHash(event.newURL)
         const absHash = this.ensureAbsoluteHash(newHash, oldHash)
         if (absHash !== newHash) {
             history.replaceState({}, "", \`#$\{absHash}\`)
         }
-        this.setHash(absHash)
+        void this.setHash(absHash)
     }
 
     private extractHash(url: string) {
@@ -189,13 +189,13 @@ class RouteContext {
 }
 
 export function useRouteContext(): RouteMatch | null {
-    const [params, setParams] = React.useState(currentRouteContext.value)
+    const [params, setParams] = React.useState(getRouteContext.value)
     React.useEffect(() => {
         const update = (value: RouteMatch | null) => {
             setParams(value)
         }
-        currentRouteContext.addListener(update)
-        return () => currentRouteContext.removeListener(update)
+        getRouteContext.addListener(update)
+        return () => getRouteContext.removeListener(update)
     }, [])
     return params
 }
@@ -232,7 +232,7 @@ export function useRouteParam<T>(
     const params = useRouteParams(name)
     try {
         const text = decodeURIComponent(params[name] ?? "")
-        const value = JSON.parse(text)
+        const value: unknown = JSON.parse(text)
         return typeGuard(value) ? value : defaultValue
     } catch (ex) {
         return defaultValue
