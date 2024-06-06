@@ -101,7 +101,7 @@ class RouteContext {
     constructor(
         private readonly security: [
             RoutePath,
-            (path: RoutePath) => Promise<RoutePath | undefined>
+            (path: RoutePath, hash: string) => Promise<RoutePath | undefined>
         ][]
     ) {
         const hash = this.extractHash(window.location.href)

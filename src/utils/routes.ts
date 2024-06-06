@@ -112,7 +112,7 @@ async function writeRoutesFile(rootPath: string, routes: Route[]) {
             ...generateRoutePathDictionary(routes),
             CODE_FOR_ROUTES_TAIL,
             "// Initialize RouteContext with potential access files",
-            `const SECURITY: [RoutePath, (path: RoutePath) => Promise<RoutePath | undefined>][] = [`,
+            `const SECURITY: [RoutePath, (path: RoutePath, hash: string) => Promise<RoutePath | undefined>][] = [`,
             createAccessArguments(routes),
             "]",
             "let currentRouteContext: null | RouteContext = null",
