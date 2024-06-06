@@ -1,6 +1,6 @@
 {
     "name": "build-react-routes",
-    "version": "0.9.6",
+    "version": "0.9.7",
     "private": false,
     "bin": "dist/build-react-routes.js",
     "repository": {
@@ -17,7 +17,7 @@
         "start": "tsc --watch -p tsconfig.json"
     },
     "devDependencies": {
-        "@types/node": "^20.12.13",
+        "@types/node": "^20.14.0",
         "typescript": "^5.4.5"
     }
 }
