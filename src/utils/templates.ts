@@ -130,7 +130,7 @@ class RouteContext {
             for (const [route, access] of this.security) {
                 if (!value.route.startsWith(route)) continue
 
-                const authorizedRoute = await access(value.route)
+                const authorizedRoute = await access(value.route, hash)
                 if (authorizedRoute && authorizedRoute !== value.route) {
                     value = findRouteForPath(authorizedRoute)
                     if (!value) break
