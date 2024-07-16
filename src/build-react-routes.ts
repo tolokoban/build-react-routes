@@ -39,7 +39,17 @@ async function start() {
             await generateRoutes(root, routes)
             if (after) {
                 console.log(color("Execute:", "LightCyan"), after)
-                exec(after)
+                exec(after, (err, stdout, stderr) => {
+                    if (err) {
+                        console.error(
+                            "Fatal error in AFTER script:",
+                            err.message
+                        )
+                        return
+                    }
+                    console.log(stdout)
+                    console.error(stderr)
+                })
             }
         }
         await generate()
