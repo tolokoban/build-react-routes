@@ -30,13 +30,13 @@ async function start() {
             const route = await browseRoutes(root)
             const routes = flattenRoutes(route)
             const structure = stringifyRoutes(routes)
-            if (structure === previousStructure) return
-
-            previousStructure = structure
-            console.log()
-            routes.forEach(r => logRoute(r))
-            console.log()
-            await generateRoutes(root, routes)
+            if (structure !== previousStructure) {
+                previousStructure = structure
+                console.log()
+                routes.forEach(r => logRoute(r))
+                console.log()
+                await generateRoutes(root, routes)
+            }
             if (after) {
                 console.log(color("Execute:", "LightCyan"), after)
                 exec(after, (err, stdout, stderr) => {
