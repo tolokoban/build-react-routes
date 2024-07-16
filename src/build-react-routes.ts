@@ -2,6 +2,7 @@
 
 import FS from "node:fs"
 import Path from "node:path"
+import { exec } from "node:child_process"
 import Chokidar from "chokidar"
 import { color, logError, logRoute } from "./utils/log"
 import { browseRoutes, flattenRoutes, generateRoutes } from "./utils/routes"
@@ -21,7 +22,7 @@ function stringifyRoutes(routes: Route[]): string {
 
 async function start() {
     try {
-        const { targets, watchMode } = parseProgramArguments()
+        const { targets, watchMode, after } = parseProgramArguments()
         const [root] = targets
         console.log(color("Processing folder:", "LightBlue"), root)
         let previousStructure = ""
@@ -36,6 +37,10 @@ async function start() {
             routes.forEach(r => logRoute(r))
             console.log()
             await generateRoutes(root, routes)
+            if (after) {
+                console.log(color("Execute:", "LightCyan"), after)
+                exec(after)
+            }
         }
         await generate()
         if (watchMode) {

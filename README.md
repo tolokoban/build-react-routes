@@ -7,9 +7,13 @@ Create lightweight routes based on conventions inspired by
 
 ```bash
 npx @tolokoban/build-react-routes ./src/app
+npx @tolokoban/build-react-routes ./src/app --watch
+npx @tolokoban/build-react-routes ./src/app --watch --after "npm run do_something"
 ```
 
-The script will watch the given folder and generate an `index.tsx` file in it.
+Argument `--after` (or `-a` in short) allows you to execute a command anytime a route has been generated.
+
+The script will inspect the given folder and generate an `index.tsx` file in it.
 You can use it as your main app component:
 
 ```ts
