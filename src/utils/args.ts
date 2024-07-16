@@ -19,6 +19,7 @@ export function parseProgramArguments(): {
         for (const arg of args) {
             if (next) {
                 options[next] = arg
+                next = null
                 continue
             }
             if (arg.startsWith("-")) {
