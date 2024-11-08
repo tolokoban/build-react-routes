@@ -55,7 +55,7 @@ export function parseProgramArguments(): {
         console.error("Fatal error!", message)
         console.error("")
         console.error("Usage:")
-        console.error(`    ${node} ${program} [-w|--watch] path`)
+        console.error(`    node ${Path.basename(program)} [-w|--watch] path`)
         console.error("")
         process.exit(1)
     }

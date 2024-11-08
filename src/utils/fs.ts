@@ -40,6 +40,9 @@ export async function saveTextIfNew(
  * Save a file.
  */
 export async function saveText(path: string, content: string): Promise<void> {
+    if (existsSync(path)) {
+        if (content === (await FS.readFile(path)).toString()) return
+    }
     console.log(color("Write:", "LightGreen"), path)
     return await FS.writeFile(path, content, { encoding: "utf-8" })
 }

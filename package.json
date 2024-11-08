@@ -7,7 +7,7 @@
         "url": "https://github.com/tolokoban/build-react-routes"
     },
     "dependencies": {
-        "chokidar": "^3.6.0"
+        "chokidar": "^4.0.1"
     },
     "scripts": {
         "prebuild": "cp package.json src/",
@@ -17,7 +17,7 @@
         "start": "tsc --watch -p tsconfig.json"
     },
     "devDependencies": {
-        "@types/node": "^20.14.10",
-        "typescript": "^5.5.3"
+        "@types/node": "^22.8.0",
+        "typescript": "^5.6.3"
     }
 }
