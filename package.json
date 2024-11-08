@@ -1,6 +1,6 @@
 {
     "name": "build-react-routes",
-    "version": "0.10.0",
+    "version": "0.10.1",
     "private": false,
     "bin": "dist/build-react-routes.js",
     "repository": {
