@@ -213,16 +213,26 @@ export function useRouteParams<T extends string>(
     return params
 }
 
-const isNumber = (data: unknown): data is number => typeof data === "number"
+export function useRouteParamAsString(name: string, defaultValue = ""): string {
+    const params = useRouteParams(name)
+    return params[name] ?? defaultValue
+}
 
 export function useRouteParamAsInt(name: string, defaultValue = 0): number {
-    return Math.round(useRouteParam(name, defaultValue, isNumber))
+    const params = useRouteParams(name)
+    const value = parseInt(params[name] ?? "", 10)
+    return Number.isNaN(value) ? defaultValue : value
 }
 
 export function useRouteParamAsFloat(name: string, defaultValue = 0): number {
-    return useRouteParam(name, defaultValue, isNumber)
+    const params = useRouteParams(name)
+    const value = parseFloat(params[name] ?? "")
+    return Number.isNaN(value) ? defaultValue : value
 }
 
+/**
+ * Parse param as JSON strings.
+ */
 export function useRouteParam<T>(
     name: string,
     defaultValue: T,
