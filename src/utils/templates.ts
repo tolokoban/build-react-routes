@@ -152,7 +152,7 @@ class RouteContext {
         const newHash = this.extractHash(event.newURL)
         const absHash = this.ensureAbsoluteHash(newHash, oldHash)
         if (absHash !== newHash) {
-            history.replaceState({}, "", \`#$\{absHash}\`)
+            globalThis.history.replaceState({}, "", \`#$\{absHash}\`)
         }
         void this.setHash(absHash)
     }
@@ -261,7 +261,7 @@ import { RouteMatch, RoutePath } from "./types"
 
 export const CODE_FOR_INDEX_TAIL = `
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-function intl<T extends PageComponent | ContainerComponent | JSX.Element>(
+function intl<T extends PageComponent | ContainerComponent | React.ReactNode>(
     page: T,
     translations: Record<string, T>,
     lang = ""
@@ -284,8 +284,8 @@ type ContainerComponent = React.FC<{
 
 interface RouteProps {
     path: string
-    element?: JSX.Element
-    fallback?: JSX.Element
+    element?: React.ReactNode
+    fallback?: React.ReactNode
     children?: React.ReactNode
     Page?: PageComponent
     Layout?: ContainerComponent
