@@ -1,13 +1,13 @@
 {
     "name": "build-react-routes",
-    "version": "0.10.6",
+    "version": "0.10.7",
     "private": false,
     "bin": "dist/build-react-routes.js",
     "repository": {
         "url": "https://github.com/tolokoban/build-react-routes"
     },
     "dependencies": {
-        "chokidar": "^4.0.1"
+        "chokidar": "^4.0.3"
     },
     "scripts": {
         "prebuild": "cp package.json src/",
@@ -17,7 +17,7 @@
         "start": "tsc --watch -p tsconfig.json"
     },
     "devDependencies": {
-        "@types/node": "^22.9.0",
-        "typescript": "^5.6.3"
+        "@types/node": "^22.15.17",
+        "typescript": "^5.8.3"
     }
 }

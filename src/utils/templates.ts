@@ -250,13 +250,14 @@ export function useRouteParam<T>(
 `
 
 export const CODE_FOR_INDEX_HEAD = `
-export * from "./routes"
-export * from "./types"
-
 import React from "react"
 
 import { matchRoute, useRouteContext, ROUTES } from "./routes"
 import { RouteMatch, RoutePath } from "./types"
+
+export * from "./routes"
+export * from "./types"
+
 `
 
 export const CODE_FOR_INDEX_TAIL = `
