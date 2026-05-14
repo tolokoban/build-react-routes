@@ -96,6 +96,7 @@ If a folder contains a `page.tsx`, it will generate a route.
 * `layout.tsx`: A layout is UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
 * `loading.tsx`: The component to display while `page.tsx` (or `page.mdx`) is loading.
 * `access.ts`: A function to check is the access for this path is authorized.
+* `404.tst`: A component displayed if the route does not exist. If only a part of the route exists, the `404.tsx` file in search in it and in the parents after.
 
 ## Authorization
 
@@ -224,3 +225,9 @@ to install it in your production environment,
 then `build-react-routes` can be the cheapest solution.
 
 This solution is best suited for rich documentations written in Markdown.
+
+## Release notes
+
+### v0.11.0
+
+* You can now have a `404.tsx` file to catch invalid pathes.
