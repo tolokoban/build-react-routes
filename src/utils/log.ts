@@ -36,11 +36,12 @@ export function logDebug(...args: unknown[]) {
 
 export function logRoute(route: Route) {
     console.log(
-        color(route.name, "Yellow"),
         color("page", route.page ? "LightGreen" : "LightRed"),
         color("layout", route.layout ? "LightGreen" : "LightRed"),
         color("loading", route.loading ? "LightGreen" : "LightRed"),
         color("access", route.access ? "LightGreen" : "LightRed"),
+        color("404", route.notFound ? "LightGreen" : "LightRed"),
+        color(route.name, "Yellow"),
         route.path
     )
 }

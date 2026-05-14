@@ -14,6 +14,7 @@ export interface Route {
     layout: boolean
     loading: boolean
     template: boolean
+    notFound: boolean
     /**
      * Is there an access module?
      */

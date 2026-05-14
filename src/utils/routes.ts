@@ -57,6 +57,7 @@ export async function browseRoutes(
         layout: exists(path, "layout.tsx"),
         loading: exists(path, "loading.tsx"),
         template: exists(path, "template.tsx"),
+        notFound: exists(path, "404.tsx"),
         access: exists(path, "access.ts"),
         languages: await findLanguages(path),
         children: [],
@@ -150,6 +151,12 @@ async function writeTypesFile(rootPath: string, routes: Route[]) {
 async function writeIndexFile(rootPath: string, routes: Route[]) {
     const [firstRoute] = routes
     const routesWithPages = routes.filter(({ page }) => Boolean(page))
+    const hasAnyNotFound = routes.some(r => r.notFound)
+    const defaultNotFound = hasAnyNotFound
+        ? []
+        : [
+              `function DefaultNotFound() { return <p>Please add a <code>404.tsx</code> file in <code>${Path.basename(rootPath)}/</code>.</p> }`,
+          ]
     await saveText(
         Path.resolve(rootPath, "index.tsx"),
         codeLinesToString([
@@ -158,6 +165,8 @@ async function writeIndexFile(rootPath: string, routes: Route[]) {
             ...getCodeToImportContainer(routes, "layout", rootPath),
             ...getCodeToImportContainer(routes, "loading", rootPath),
             ...getCodeToImportContainer(routes, "template", rootPath),
+            ...getCodeToImportNotFound(routes, rootPath),
+            ...defaultNotFound,
             ...routesWithPages.map(route =>
                 route.languages.page
                     .map(
@@ -178,7 +187,7 @@ async function writeIndexFile(rootPath: string, routes: Route[]) {
                 `const context = useRouteContext()`,
                 ...createMultiLangElements(routes),
                 "return (",
-                createRoutesTree(firstRoute),
+                createRoutesTree(firstRoute, hasAnyNotFound),
                 ")",
             ],
             "}",
@@ -221,6 +230,18 @@ function getCodeToImportAccess(routes: Route[], rootPath: string): string[] {
             )
             const name = `${prop}${route.id}`
             return `import ${name} from "./${path}"`
+        })
+}
+
+function getCodeToImportNotFound(routes: Route[], rootPath: string): string[] {
+    return routes
+        .filter(route => route.notFound)
+        .map(route => {
+            const path = Path.join(
+                Path.relative(rootPath, route.path),
+                "404"
+            )
+            return `import NotFound${route.id} from "./${path}"`
         })
 }
 
@@ -307,20 +328,22 @@ function createMultiLangElements(routes: Route[]): CodeSection[] {
     return code
 }
 
-function createRoutesTree(route: Route): CodeSection {
+function createRoutesTree(route: Route, hasAnyNotFound: boolean): CodeSection {
     const loading = getLoading(route)
     const template = getTemplate(route)
+    let notFound = getNotFound(route)
+    if (!notFound && !route.parent && !hasAnyNotFound) notFound = "DefaultNotFound"
     let routeCode = `Route path="${route.name}"${makeProp(
         route,
         "page",
         "pg"
     )}${makeProp(route, "layout", "ly")}${
         template ? ` Template={${template}}` : ""
-    } ${loading}`
+    }${notFound ? ` NotFound={${notFound}}` : ""} ${loading}`
     return route.children.length > 0
         ? [
               `<${routeCode} context={context}>`,
-              ...route.children.map(createRoutesTree),
+              ...route.children.map(child => createRoutesTree(child, hasAnyNotFound)),
               `</Route>`,
           ]
         : [`<${routeCode} context={context}/>`]
@@ -348,6 +371,15 @@ function getTemplate(route: Route) {
         current = current.parent
     }
     return template
+}
+
+function getNotFound(route: Route): string | null {
+    let current: Route | undefined = route
+    while (current) {
+        if (current.notFound) return `NotFound${current.id}`
+        current = current.parent
+    }
+    return null
 }
 
 /**

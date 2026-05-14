@@ -191,6 +191,27 @@ but also this one (using relative pathes):
 * (for wine)[#wine]
 ```
 
+## How to use it with **rspack**
+
+Add this in your `rspack.config.mjs` as first element of section **plugins**:
+
+```ts
+new Rspack.ProgressPlugin(),
+/** @type {Rspack.RspackPluginInstance} */
+({
+    apply(compiler) {
+        compiler.hooks.beforeCompile.tapAsync(
+            "build-react-routes-plugin",
+            /** @param {unknown} _params @param {() => void} done */
+            (_params, done) => {
+                execSync("npx build-react-routes ./src/app/", { stdio: "inherit" })
+                done()
+            }
+        )
+    },
+}),
+```
+
 ## Limitations
 
 * Routing works only with hashes.

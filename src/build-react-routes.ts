@@ -11,9 +11,8 @@ import { parseProgramArguments } from "./utils/args"
 import { version } from "./package.json"
 
 function stringifyRoute(route: Route): string {
-    return `{${route.name},${route.page},${route.layout},${route.loading},${
-        route.path
-    }},${FS.existsSync(Path.resolve(route.path, "index.tsx"))}`
+    return `{${route.name},${route.page},${route.layout},${route.loading},${route.notFound},${route.path
+        }},${FS.existsSync(Path.resolve(route.path, "index.tsx"))}`
 }
 
 function stringifyRoutes(routes: Route[]): string {
@@ -24,6 +23,37 @@ async function start() {
     try {
         const { targets, watchMode, after } = parseProgramArguments()
         const [root] = targets
+        const notFoundPath = Path.resolve(root, "404.tsx")
+        if (!FS.existsSync(notFoundPath)) {
+            FS.writeFileSync(
+                notFoundPath,
+                `export default function Page404() {
+    return (
+        <div
+            style={{
+                color: "#fff",
+                background: "#000",
+                position: "fixed",
+                left: 0,
+                top: 0,
+                width: "100%",
+                height: "100%",
+                display: "grid",
+                placeItems: "center",
+            }}>
+            <div
+                style={{
+                    fontFamily: "sans-serif",
+                    fontSize: "10vw",
+                }}>
+                404
+            </div>
+        </div>
+    )
+}
+`
+            )
+        }
         console.log(color("Processing folder:", "LightBlue"), root)
         let previousStructure = ""
         const generate = async () => {
