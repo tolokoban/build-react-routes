@@ -42,7 +42,6 @@ export function logRoute(route: Route) {
         color("access", route.access ? "LightGreen" : "LightRed"),
         color("404", route.notFound ? "LightGreen" : "LightRed"),
         color(route.name, "Yellow"),
-        route.path
     )
 }
 
