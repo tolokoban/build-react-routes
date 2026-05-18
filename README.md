@@ -228,6 +228,10 @@ This solution is best suited for rich documentations written in Markdown.
 
 ## Release notes
 
+### v0.11.1
+
+* Fix routes collision issue. Before, if you had two routes `#/foo/bar` and `#/foo/barbarian`, then you always got 404 for the second one.
+
 ### v0.11.0
 
 * You can now have a `404.tsx` file to catch invalid pathes.
