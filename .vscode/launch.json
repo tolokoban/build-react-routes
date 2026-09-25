@@ -10,6 +10,17 @@
             "name": "Launch Program",
             "skipFiles": ["<node_internals>/**"],
             "program": "${workspaceFolder}/dist/build-react-routes.js ../tgd2/doc/src/app/"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug Current Test File",
+            "program": "${workspaceFolder}/node_modules/vitest/vitest.mjs",
+            "args": ["run", "${relativeFile}"],
+            "autoAttachChildProcesses": true,
+            "smartStep": true,
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+            "console": "integratedTerminal"
         }
     ]
 }

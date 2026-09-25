@@ -8,7 +8,7 @@ export function parseProgramArguments(): {
     watchMode: boolean
     after: string | null
 } {
-    const [node, program, ...args] = process.argv
+    const [_node, program, ...args] = process.argv
     try {
         const targets: string[] = []
         const options: Record<Options, string | null> = {
@@ -55,7 +55,7 @@ export function parseProgramArguments(): {
         console.error("Fatal error!", message)
         console.error("")
         console.error("Usage:")
-        console.error(`    node ${Path.basename(program)} [-w|--watch] path`)
+        console.error(`    node ${Path.basename(program)} [-w|--watch] [(-a|--after) command] path`)
         console.error("")
         process.exit(1)
     }

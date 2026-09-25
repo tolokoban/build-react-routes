@@ -58,6 +58,7 @@ src/
    ┃  ┣━ plates/
    ┃  ┃  ┗━ page.mdx
    ┃  ┗━ glasses/
+   ┃     ┣━ access.tsx
    ┃     ┣━ page.tsx
    ┃     ┣━ _common_/
    ┃     ┃  ┣━ config/
@@ -93,29 +94,11 @@ If a folder contains a `page.tsx`, it will generate a route.
 * `page.mdx`: Instead of writing the code for the component, you can let
 [MDX](https://mdxjs.com/) generate one based on the
 [Markdown](https://commonmark.org/) you provide in a `page.mdx` file.
-* `layout.tsx`: A layout is UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
+* `layout.tsx`: A layout is a UI that is shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render. Layouts can also be nested. Must export a default function which returns a React compoment with a `children: React.ReactNode` property.
 * `loading.tsx`: The component to display while `page.tsx` (or `page.mdx`) is loading.
-* `access.ts`: A function to check is the access for this path is authorized.
-* `404.tst`: A component displayed if the route does not exist. If only a part of the route exists, the `404.tsx` file in search in it and in the parents after.
-
-## Authorization
-
-Along side with any `page.tsx` file, you can add a `access.ts` file that looks like
-the following example:
-
-```ts
-export default async function access(path: RoutePath): Promise<RoutePath | undefined> {
-    if (path.startsWith("/doc")) return
-
-    const isLogged = await checkLogin()
-    if (!isLogged) return "/login"
-}
-```
-
-The function gets the route the user wants to reach.
-And it returns the route the user will actually reach.
-
-Returning `undefined` means that the wanted route is accepted.
+* `access.tsx`: Looks like the `layout.tsx` file. But it won't be nested. Only the one nearest to the current path will be applied.
+This is usefull if you want to display a login page for routes that must be protected.
+* `404.tsx`: A component displayed if the route does not exist. If only a part of the route exists, the `404.tsx` file is searched in it and in the parents after.
 
 ## Multilingual pages
 

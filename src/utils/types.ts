@@ -8,6 +8,7 @@ export interface Route {
     name: string
     /**
      * Absolute path.
+     * For example: `app/sections/(green)/light`
      */
     path: string
     page?: "tsx" | "mdx"
@@ -17,6 +18,10 @@ export interface Route {
     notFound: boolean
     /**
      * Is there an access module?
+     * If yes, it must be something like this:
+     * ```tsx
+     * export default function Access({children}: {children:React.ReactNode})
+     * ```
      */
     access: boolean
     languages: {

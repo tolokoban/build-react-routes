@@ -2,7 +2,7 @@ export const CODE_FOR_ROUTES_HEAD = `
 import React from "react"
 
 import { RoutePath, RouteMatch } from "./types"
-`
+`;
 
 export const CODE_FOR_ROUTES_TAIL = `
 /**
@@ -35,73 +35,66 @@ export function isRouteEqualTo(route: RoutePath, ...params: (string | number)[])
     return getRouteContext().value?.path === hydrateRoute(route, params)
 }
 
-export function findRouteForPath(path: string): RouteMatch | null {
-    let bestMatch: RouteMatch | null = null
-    for (const parts of Object.values(ROUTES)) {
-        const match = matchRoute(path, parts)
-        if (!match) continue
+export function matchRoute(path: string, routes: Route[] = ROUTES): RouteMatch | null {
+  const matches: RouteMatch[] = [];
+  const pathParts = splitPath(path);
+  for (const route of routes) {
+    const routeParts = splitPath(route);
+    if (routeParts.length < pathParts.length) continue;
 
-        if (match.distance === 0) return match
+    const params: Record<string, string> = {};
+    let failure = false;
+    for (let i = 0; i < pathParts.length; i++) {
+      const pathItem = pathParts[i];
+      const routeItem = routeParts[i];
+      if (routeItem.charAt(0) === "[") {
+        params[routeItem.slice(1, routeItem.length - 1)] = pathItem;
+        continue;
+      }
 
-        if (!bestMatch || match.distance < bestMatch.distance) {
-            bestMatch = match
-        }
+      if (pathItem !== routeItem) {
+        failure = true;
+        break;
+      }
     }
-    return bestMatch
+    if (failure) continue;
+
+    matches.push({
+      full: pathParts.length === routeParts.length,
+      params,
+      paramsCount: Object.keys(params).length,
+      path,
+      route,
+    });
+  }
+  if (matches.length === 0) return null;
+
+  let bestIndex = 0;
+  let bestScore = computeRouteMatchScore(matches[bestIndex]);
+  for (let i = 1; i < matches.length; i++) {
+    const score = computeRouteMatchScore(matches[i]);
+    if (score > bestScore) {
+      bestIndex = i;
+      bestScore = score;
+    }
+  }
+  return matches[bestIndex];
 }
 
-export function matchRoute(path: string, parts: string[] | undefined): RouteMatch | null {
-    if (!parts) return null
-    
-    let current = path
-    const params: Record<string, string> = {}
-    for (let i = 0; i < parts.length; i++) {
-        if (current.length < 1) return null
-
-        const part = parts[i]
-        if (part.startsWith("[")) {
-            const name = part.substring(1, part.length - 1)
-            const [head, tail] = decapitate(current)
-            params[name] = head
-            current = tail
-        } else if (isPrefixedBy(current,part)) {
-            current = current.substring(part.length + 1)
-        } else {
-            return null
-        }
-    }
-    const match: RouteMatch = {
-        path,
-        route: parts.join("/") as RoutePath,
-        params,
-        distance: current.length,
-    }
-    return match
+function computeRouteMatchScore(match: RouteMatch) {
+  return (match.full ? 1000 : 0) - match.paramsCount;
 }
 
-function isPrefixedBy(current: string, part: string): boolean {
-    if (part === "/" && current.startsWith("/")) return true
-
-    const items = current.split("/")
-    for (let i = 1; i < items.length + 1; i++) {
-        const prefix = items.slice(0, i).join("/")
-        if (prefix === part) return true
-    }
-    return false
-}
-
-function decapitate(text: string): [string, string] {
-    const pos = text.indexOf("/")
-    if (pos < 0) return [text, ""]
-
-    return [text.substring(0, pos), text.substring(pos + 1)]
+function splitPath(path: string): string[] {
+  const text = path.startsWith("/") ? path.slice(1) : path;
+  return text.split("/").filter(item => item.length > 0);
 }
 
 function hydrateRoute(route: RoutePath, params: (string | number)[]) {
-    const items = ROUTES[route]
+    const items = splitPath(route)
     let i = 0
-    return items
-        .map(item => (item.charAt(0) === "[" ? params[i++] : item))
+    return "/" + items
+        .map(item => (item.charAt(0) === "[" ? (params[i++] ?? item) : item))
         .join("/")
 }
 
@@ -109,12 +102,7 @@ class RouteContext {
     private readonly listeners = new Set<(context: RouteMatch | null) => void>()
     private _value: RouteMatch | null = null
 
-    constructor(
-        private readonly security: [
-            RoutePath,
-            (path: RoutePath, hash: string) => Promise<RoutePath | undefined>
-        ][]
-    ) {
+    constructor() {
         const hash = this.extractHash(window.location.href)
         this.setHash(hash).then(() =>
             window.addEventListener("hashchange", this.handleHashChange)
@@ -136,26 +124,11 @@ class RouteContext {
     }
 
     private async setHash(hash: string) {
-        let value = findRouteForPath(hash)
-        if (value) {
-            for (const [route, access] of this.security) {
-                if (!value.route.startsWith(route)) continue
+        let value = matchRoute(hash);
+        if (this._value?.path === value?.path) return;
 
-                const authorizedRoute = await access(value.route, hash)
-                if (authorizedRoute && authorizedRoute !== value.route) {
-                    value = findRouteForPath(authorizedRoute)
-                    if (!value) break
-
-                    this._value = null
-                    goto(value.path as RoutePath)
-                    return
-                }
-            }
-        }
-        if (this._value?.route === value?.route) return
-
-        this._value = value
-        this.listeners.forEach(listener => listener(value))
+        this._value = value;
+        this.listeners.forEach((listener) => listener(value));
     }
 
     private readonly handleHashChange = (event: HashChangeEvent) => {
@@ -258,18 +231,18 @@ export function useRouteParam<T>(
         return defaultValue
     }
 }
-`
+`;
 
 export const CODE_FOR_INDEX_HEAD = `
 import React from "react"
 
-import { matchRoute, useRouteContext, ROUTES } from "./routes"
-import { RouteMatch, RoutePath } from "./types"
+import { matchRoute, useRouteContext } from "./routes"
+import { RouteMatch } from "./types"
 
 export * from "./routes"
 export * from "./types"
 
-`
+`;
 
 export const CODE_FOR_INDEX_TAIL = `
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -288,89 +261,98 @@ function intl<T extends PageComponent | ContainerComponent | React.ReactNode>(
     return page
 }
 
-type PageComponent = React.FC<{ params: Record<string, string> }>
+type PageComponent = React.FC<{ params: Record<string, string> }>;
 type ContainerComponent = React.FC<{
-    children: React.ReactNode
-    params: Record<string, string>
-}>
+  children: React.ReactNode;
+  params: Record<string, string>;
+}>;
 
 interface RouteProps {
-    path: string
-    element?: React.ReactNode
-    fallback?: React.ReactNode
-    children?: React.ReactNode
-    Page?: PageComponent
-    Layout?: ContainerComponent
-    Template?: ContainerComponent
-    NotFound?: React.FC
-    context: RouteMatch | null
+  path: string;
+  def: [
+    Page?: PageComponent,
+    Layout?: ContainerComponent,
+    Loading?: React.FC,
+    Access?: React.FC<{ children: React.ReactNode }>,
+    NotFound?: React.FC,
+  ];
+  children?: RouteChild | RouteChild[];
+  context: RouteMatch | null;
 }
 
-function Route({
-    path,
-    fallback,
-    children,
-    Page,
-    Layout,
-    Template,
-    NotFound,
-    context,
-}: RouteProps) {
-    const match = context && matchRoute(context.path, ROUTES[path as RoutePath])
+type RouteChild = React.ReactElement<{
+  path: string;
+  def: [
+    Page?: PageComponent,
+    Layout?: ContainerComponent,
+    Loading?: React.FC,
+    Access?: React.FC<{ children: React.ReactNode }>,
+    NotFound?: React.FC,
+  ];
+}>;
 
-    if (!match) return null
+/**
+ * If we reach this component, that means that the component's "path"
+ * already matches the beginning of the browser path.
+ * We have now to check if any child matches the next part of the path.
+ * If not, we display the "NotFound".
+ */
+function Route(props: RouteProps) {
+  const { def, children, context } = props;
+  if (!context) return null;
 
-    if (match.distance === 0) {
-        if (!Page) {
-            if (NotFound) return Layout ? (
-                <Layout params={match.params}><NotFound /></Layout>
-            ) : <NotFound />
-            return null
-        }
+  const [Page, Layout, Loading, Access, NotFound] = def;
+  const notFound = NotFound ? <NotFound /> : null;
+  if (context.path === "/") {
+    // Special case of root path
+    if (!Page) return notFound;
 
-        const element = Template ? (
-            <Template params={match.params}>
-                <Page params={match.params} />
-            </Template>
-        ) : (
-            <Page params={match.params} />
-        )
-        if (Layout) {
-            return (
-                <Layout params={match.params}>
-                    <React.Suspense fallback={fallback}>
-                        {element}
-                    </React.Suspense>
-                </Layout>
-            )
-        }
-        return <React.Suspense fallback={fallback}>{element}</React.Suspense>
-    }
+    let root = <Page params={{}} />;
+    if (Loading) root = <React.Suspense fallback={<Loading />}>{root}</React.Suspense>;
+    if (Layout) root = <Layout params={{}}>{root}</Layout>;
+    if (Access) root = <Access>{root}</Access>;
+    return root;
+  }
+  const array = ensureArray(children)
+    .map((r) => [matchRoute(r.props.path, [context.route]), r])
+    .filter(([match]) => match !== null) as Array<[RouteMatch, RouteChild]>;
+  const [best] = array.sort(sortRouteMatchArray);
 
-    if (NotFound && !hasMatchingChild(context.path, children)) {
-        return Layout ? (
-            <Layout params={match.params}><NotFound /></Layout>
-        ) : (
-            <NotFound />
-        )
-    }
+  if (!best) return notFound;
 
-    return Layout ? (
-        <Layout params={match.params}>{children}</Layout>
-    ) : (
-        <>{children}</>
-    )
+  const [match, routeChild] = best;
+  if (!match.full) {
+    return routeChild;
+  }
+
+  if (!routeChild) return notFound;
+
+  const [PageChild] = routeChild.props.def;
+  if (!PageChild) return notFound;
+
+  let element = <PageChild params={match.params} />;
+  if (Loading) element = <React.Suspense fallback={<Loading />}>{element}</React.Suspense>;
+  if (Layout) element = <Layout params={match.params}>{element}</Layout>;
+  if (Access) element = <Access>{element}</Access>;
+  return element;
 }
 
-function hasMatchingChild(path: string, children: React.ReactNode): boolean {
-    return React.Children.toArray(children).some(child => {
-        if (!React.isValidElement(child)) return false
-        const childPath = (child.props as { path?: string }).path
-        if (!childPath) return false
-        return matchRoute(path, ROUTES[childPath as RoutePath]) !== null
-    })
+function ensureArray<T>(children: T | T[] | undefined): T[] {
+  if (!children) return [];
+  if (Array.isArray(children)) return children;
+  return [children];
 }
-`
+
+/**
+ * The fist element of the array will be the one
+ * that matches the best.
+ */
+function sortRouteMatchArray([a]: [RouteMatch, RouteChild], [b]: [RouteMatch, RouteChild]): number {
+  const scoreA = (a.full ? 1000 : 0) - a.paramsCount;
+  const scoreB = (b.full ? 1000 : 0) - b.paramsCount;
+  return scoreB - scoreA;
+}
+`;
 
 export const CODE_FOR_TYPES = `
 export interface RouteMatch {
@@ -378,8 +360,12 @@ export interface RouteMatch {
     route: RoutePath
     params: Record<string, string>
     /**
-     * 0 means a perfect match.
+     * Does it match the full path?
      */
-    distance: number
+    full: boolean
+    /**
+     * Number of params in the route
+     */
+    paramsCount: number
 }
-`
+`;
