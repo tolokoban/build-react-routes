@@ -211,6 +211,10 @@ This solution is best suited for rich documentations written in Markdown.
 
 ## Release notes
 
+### v0.12.0
+
+* Access mechanism rewritten.
+
 ### v0.11.1
 
 * Fix routes collision issue. Before, if you had two routes `#/foo/bar` and `#/foo/barbarian`, then you always got 404 for the second one.
