@@ -322,18 +322,21 @@ function Route(props: RouteProps) {
 
   const [match, routeChild] = best;
   if (!match.full) {
-    return routeChild;
+    let full = routeChild
+    if (Layout) full = <Layout params={match.params}>{full}</Layout>
+    return full;
   }
 
   if (!routeChild) return notFound;
-
-  const [PageChild] = routeChild.props.def;
+    
+  const [PageChild, LayoutChild, LoadingChild, AccessChild] = routeChild.props.def;
   if (!PageChild) return notFound;
 
   let element = <PageChild params={match.params} />;
-  if (Loading) element = <React.Suspense fallback={<Loading />}>{element}</React.Suspense>;
+  if (LoadingChild) element = <React.Suspense fallback={<LoadingChild />}>{element}</React.Suspense>;
+  if (LayoutChild) element = <LayoutChild params={match.params}>{element}</LayoutChild>;
+  if (AccessChild) element = <AccessChild>{element}</AccessChild>;
   if (Layout) element = <Layout params={match.params}>{element}</Layout>;
-  if (Access) element = <Access>{element}</Access>;
   return element;
 }
 

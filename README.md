@@ -211,6 +211,16 @@ This solution is best suited for rich documentations written in Markdown.
 
 ## Release notes
 
+### v0.12.3
+
+* Layouts are now properly nested: a parent `layout.tsx` wraps all its sub-routes, not only its own page.
+* A page now uses its own `loading.tsx`, `layout.tsx` and `access.tsx`, instead of its parent's `loading.tsx`.
+* `access.tsx` is now rendered inside the parent layouts, so a login page keeps the surrounding UI.
+
+### v0.12.1
+
+* Fix non nested layouts.
+
 ### v0.12.0
 
 * Access mechanism rewritten.
