@@ -35,7 +35,7 @@ export function isRouteEqualTo(route: RoutePath, ...params: (string | number)[])
     return getRouteContext().value?.path === hydrateRoute(route, params)
 }
 
-export function matchRoute(path: string, routes: Route[] = ROUTES): RouteMatch | null {
+export function matchRoute(path: string, routes: RoutePath[] = ROUTES): RouteMatch | null {
   const matches: RouteMatch[] = [];
   const pathParts = splitPath(path);
   for (const route of routes) {
