@@ -1,6 +1,6 @@
 {
     "name": "build-react-routes",
-    "version": "0.12.3",
+    "version": "0.12.4",
     "private": false,
     "bin": "dist/build-react-routes.js",
     "repository": {
@@ -22,9 +22,9 @@
         "test:watch": "vitest"
     },
     "devDependencies": {
-        "@types/node": "^26.6.2",
-        "oxfmt": "^0.71.0",
+        "@types/node": "^26.6.5",
+        "oxfmt": "^0.73.0",
         "typescript": "^7.0.2",
-        "vitest": "^5.0.1"
+        "vitest": "^5.0.5"
     }
 }
