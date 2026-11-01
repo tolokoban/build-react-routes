@@ -211,6 +211,11 @@ This solution is best suited for rich documentations written in Markdown.
 
 ## Release notes
 
+### v0.14.0
+
+* New function `gotoTarget(target, route, ...params)`: same as `goto()`, but opens the URL in another tab/window (`"_blank"` if `target` is not defined).
+* **Breaking change**: `useRouteParam(name, typeGuard)` has no `defaultValue` argument anymore. It returns `undefined` if the param is missing, is not valid JSON, or is rejected by `typeGuard`. Use `useRouteParam(name, typeGuard) ?? defaultValue` to get the previous behaviour.
+
 ### v0.12.3
 
 * Layouts are now properly nested: a parent `layout.tsx` wraps all its sub-routes, not only its own page.

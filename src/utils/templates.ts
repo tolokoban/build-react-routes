@@ -25,6 +25,24 @@ export function goto(route: RoutePath, ...params: (string | number)[]) {
 }
 
 /**
+ * Same as \`goto()\`, but open the URL in another browsing context.
+ * @param target Name of the window/tab to open the URL in
+ * (\`"_blank"\` if not defined).
+ * @param route Canonic name of the target route.
+ * @param params If the canonical name has \`[name]\` parts,
+ * they will be hydrated by the \`params\`.
+ */
+export function gotoTarget(
+    target: string | null | undefined,
+    route: RoutePath,
+    ...params: (string | number)[]
+) {
+    const url = new URL(window.location.href)
+    url.hash = hydrateRoute(route, params)
+    window.open(url.toString(), target ?? "_blank")
+}
+
+/**
  * Syntaxic sugar to return \`() => { goto(...) }\`.
  */
 export function makeGoto(route: RoutePath, ...params: (string | number)[]) {
@@ -197,6 +215,37 @@ export function useRouteParams<T extends string>(
     return params
 }
 
+/**
+ * Read a route param holding a URI-encoded JSON value,
+ * and check its type at runtime.
+ *
+ * For instance, with the route \`"/search/[filter]"\`:
+ * \`\`\`
+ * const filter = useRouteParam("filter", isFilter) ?? { tags: [] }
+ * \`\`\`
+ * The value must not contain a \`/\` once encoded (use
+ * \`encodeURIComponent(JSON.stringify(value))\` to build it).
+ * @param name Name of the param, without the brackets.
+ * @param typeGuard Checks that the parsed JSON is of type \`T\`.
+ * @returns \`undefined\` if the param is missing, is not
+ * valid JSON, or is rejected by \`typeGuard\`.
+ */
+export function useRouteParam<T>(
+    name: string,
+    typeGuard: (data: unknown) => data is T
+): T | undefined {
+    const params = useRouteParams(name)
+    const text = params[name]
+    if (text === undefined) return undefined
+
+    try {
+        const value: unknown = JSON.parse(decodeURIComponent(text))
+        return typeGuard(value) ? value : undefined
+    } catch (ex) {
+        return undefined
+    }
+}
+
 export function useRouteParamAsString(name: string, defaultValue = ""): string {
     const params = useRouteParams(name)
     return params[name] ?? defaultValue
@@ -212,24 +261,6 @@ export function useRouteParamAsFloat(name: string, defaultValue = 0): number {
     const params = useRouteParams(name)
     const value = parseFloat(params[name] ?? "")
     return Number.isNaN(value) ? defaultValue : value
-}
-
-/**
- * Parse param as JSON strings.
- */
-export function useRouteParam<T>(
-    name: string,
-    defaultValue: T,
-    typeGuard: (data: unknown) => data is T
-): T {
-    const params = useRouteParams(name)
-    try {
-        const text = decodeURIComponent(params[name] ?? "")
-        const value: unknown = JSON.parse(text)
-        return typeGuard(value) ? value : defaultValue
-    } catch (ex) {
-        return defaultValue
-    }
 }
 `;
 
