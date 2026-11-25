@@ -354,7 +354,7 @@ function Route(props: RouteProps) {
   const [match, routeChild] = best;
   if (!match.full) {
     let full = routeChild
-    if (Layout) full = <Layout params={match.params}>{full}</Layout>
+    if (Layout) full = <Layout params={context.params}>{full}</Layout>
     return full;
   }
 
@@ -363,11 +363,11 @@ function Route(props: RouteProps) {
   const [PageChild, LayoutChild, LoadingChild, AccessChild] = routeChild.props.def;
   if (!PageChild) return notFound;
 
-  let element = <PageChild params={match.params} />;
+  let element = <PageChild params={context.params} />;
   if (LoadingChild) element = <React.Suspense fallback={<LoadingChild />}>{element}</React.Suspense>;
-  if (LayoutChild) element = <LayoutChild params={match.params}>{element}</LayoutChild>;
+  if (LayoutChild) element = <LayoutChild params={context.params}>{element}</LayoutChild>;
   if (AccessChild) element = <AccessChild>{element}</AccessChild>;
-  if (Layout) element = <Layout params={match.params}>{element}</Layout>;
+  if (Layout) element = <Layout params={context.params}>{element}</Layout>;
   return element;
 }
 

@@ -29,17 +29,7 @@ If you want to use nultiple languages, you can pass the current one as a prop:
 createRoot(document.body).render(<App lang={navigator.language}/>)
 ```
 
-You can get the params from the props or with this hook:
-
-```ts
-import { useRouteParams } from "./app"
-
-export default function Page({ params }: { params: Record<string, string> }) {
-    const params2 : Record<string, string> = useRouteParams()
-}
-```
-
-The hook is more suited when used inside another hook that do no propagate the `params` argument.
+To read values from the URL (like the `42` in `#/tasks/42`), see [Params](#params).
 
 ## Folders conventions
 
@@ -118,25 +108,126 @@ The file resolution for `en-US` will be to search the files in this order:
 
 ## Params
 
-Let's look at the file `src/app/tasks/[taskId]/page.tsx`:
+### Declaring a param
 
-```ts
+A folder whose name is in square brackets is a param.
+It matches any single part of the path, and the matched value is stored under the
+name between the brackets.
+
+```text
+src/
+┗━ app/
+   ┗━ sites/
+      ┗━ [siteId]/
+         ┣━ layout.tsx
+         ┣━ page.tsx
+         ┗━ tasks/
+            ┗━ [taskId]/
+               ┗━ page.tsx
+```
+
+| URL                           | Route                            | Params                                   |
+| ----------------------------- | -------------------------------- | ---------------------------------------- |
+| `#/sites/new-indeed`          | `/sites/[siteId]`                | `{ siteId: "new-indeed" }`               |
+| `#/sites/new-indeed/tasks/42` | `/sites/[siteId]/tasks/[taskId]` | `{ siteId: "new-indeed", taskId: "42" }` |
+
+A param never spans several parts: `#/sites/a/b` does not match `/sites/[siteId]`.
+When several routes match a URL, the one with fewer params wins,
+so a folder `sites/new/` takes precedence over `sites/[siteId]/` for `#/sites/new`.
+
+Param values are always strings, and they are not decoded:
+if a value can contain special characters, call `decodeURIComponent()` on it.
+
+### Reading params from the props
+
+Every `page.tsx` and `layout.tsx` receives the params of the current URL in its `params` prop.
+A layout receives all the params of the current URL, including those of its child routes.
+
+```tsx
+// src/app/sites/[siteId]/tasks/[taskId]/page.tsx
 export default function Page({ params }: { params: Record<string, string> }) {
-    const taskId = parseInt(params.taskId, 10)
-    const tasks = listTasks()
-    const task = tasks[taskId]
+    const { siteId, taskId } = params
     return (
         <div>
-            <h1>{task}</h1>
+            <h1>Task #{taskId} of {siteId}</h1>
             <a href="#..">Back</a>
         </div>
     )
 }
 ```
 
-You can notice that the path has an item with square brackets (`[taskId]`).
-This item matches any string and stores it in a `params` object that we can read
-in any `page.tsx` and `layout.tsx`.
+### Reading params with hooks
+
+The hooks work in any component (or custom hook) rendered inside the app,
+so you don't need to pass `params` down the tree.
+They are exported by the generated `index.tsx`.
+
+```tsx
+import {
+    useRouteParams,
+    useRouteParamAsString,
+    useRouteParamAsInt,
+    useRouteParamAsFloat,
+    useRouteParam,
+} from "./app" // Path to the generated index.tsx
+
+function TaskTitle() {
+    // Only the names you list are returned. Missing params are `undefined`.
+    const { siteId, taskId } = useRouteParams("siteId", "taskId")
+
+    // Typed versions, with a default value if the param is missing (or not a number).
+    const site = useRouteParamAsString("siteId", "unknown")
+    const task = useRouteParamAsInt("taskId", 0)
+    const zoom = useRouteParamAsFloat("zoom", 1)
+    ...
+}
+```
+
+`useRouteParams()` called without any name returns an empty object.
+
+To pass a structured value, store it as URI-encoded JSON
+and read it back with `useRouteParam(name, typeGuard)`:
+
+```tsx
+interface Filter {
+    tags: string[]
+}
+
+function isFilter(data: unknown): data is Filter {
+    return typeof data === "object" && data !== null && Array.isArray((data as Filter).tags)
+}
+
+// Route: /search/[filter]
+goto("/search/[filter]", encodeURIComponent(JSON.stringify({ tags: ["urgent"] })))
+
+// In the page:
+const filter = useRouteParam("filter", isFilter) ?? { tags: [] }
+```
+
+`useRouteParam()` returns `undefined` if the param is missing,
+is not valid JSON, or is rejected by `typeGuard`.
+
+### Building URLs with params
+
+`goto()`, `gotoTarget()`, `makeGoto()` and `isRouteEqualTo()` take the route
+as it is written in the folders (with the brackets), followed by the values of the params, in order.
+Since routes are typed, TypeScript reports a route that does not exist anymore.
+
+```tsx
+import { goto, gotoTarget, makeGoto, isRouteEqualTo } from "./app" // Path to the generated index.tsx
+
+goto("/sites/[siteId]/tasks/[taskId]", "new-indeed", 42)
+// => #/sites/new-indeed/tasks/42
+
+gotoTarget("_blank", "/sites/[siteId]", "new-indeed")  // Opens in a new tab.
+
+<button onClick={makeGoto("/sites/[siteId]", siteId)}>Open</button>
+
+const isActive = isRouteEqualTo("/sites/[siteId]", siteId)
+```
+
+Values are inserted as is: encode them with `encodeURIComponent()` if they can contain a `/`,
+a `#` or other special characters.
 
 ## Relative paths
 
